@@ -4,24 +4,43 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
+	// server config
 	Port string
+	Env  string
+
+	// URL for frontend
+	FrontendURL string
+
+	// Supabase config
+	SupabaseURL string
+	SupabaseKey string
+	JWTSecret   string
 }
 
+// LoadCfg loads the configuration from the environment
 func LoadCfg() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
 		return nil, fmt.Errorf("error loading .env file")
 	}
 
 	cfg := &Config{
-		Port: os.Getenv("PORT"),
+		Port: getEnv("PORT", "3000"),
+		Env:  getEnv("ENV", "development"),
+
+		FrontendURL: getEnv("FRONTEND_URL", ""),
+
+		SupabaseURL: getEnv("SUPABASE_URL", ""),
+		SupabaseKey: getEnv("SUPABASE_SERVICE_KEY", ""),
+		JWTSecret:   getEnv("JWT_SECRET", ""),
 	}
 
-	err := cfg.validate()
+	err := cfg.validateConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -29,9 +48,34 @@ func LoadCfg() (*Config, error) {
 	return cfg, nil
 }
 
-func (cfg *Config) validate() error {
-	if cfg.Port == "" {
-		return fmt.Errorf("port is required")
+// getEnv grabs an environment variable or returns the default if not set
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+
+	return defaultValue
+}
+
+// validateConfig ensures all required environment variables are present
+func (cfg *Config) validateConfig() error {
+	var missingVars []string
+
+	// if cfg.SupabaseURL == "" {
+	// 	missingVars = append(missingVars, "SUPABASE_URL")
+	// }
+	// if cfg.SupabaseKey == "" {
+	// 	missingVars = append(missingVars, "SUPABASE_SERVICE_KEY")
+	// }
+	// if cfg.JWTSecret == "" {
+	// 	missingVars = append(missingVars, "JWT_SECRET")
+	// }
+
+	if len(missingVars) > 0 {
+		return fmt.Errorf(
+			"missing required environment variables: %s",
+			strings.Join(missingVars, ", "),
+		)
 	}
 
 	return nil

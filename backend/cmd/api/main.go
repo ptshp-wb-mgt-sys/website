@@ -1,12 +1,11 @@
+// Package main contains the main entrypoint for the application
 package main
 
 import (
 	"log"
 	"net/http"
 	"pet-mgt/backend/internal/config"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"pet-mgt/backend/internal/routes"
 )
 
 func main() {
@@ -15,13 +14,7 @@ func main() {
 		log.Fatalf("error loading config: %v", err)
 	}
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Heartbeat("/ping"))
-
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello World"))
-	})
+	r := routes.SetupRouter(cfg)
 
 	srv := http.Server{
 		Addr:    ":" + cfg.Port,
