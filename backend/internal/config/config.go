@@ -61,15 +61,15 @@ func getEnv(key, defaultValue string) string {
 func (cfg *Config) validateConfig() error {
 	var missingVars []string
 
-	// if cfg.SupabaseURL == "" {
-	// 	missingVars = append(missingVars, "SUPABASE_URL")
-	// }
-	// if cfg.SupabaseKey == "" {
-	// 	missingVars = append(missingVars, "SUPABASE_SERVICE_KEY")
-	// }
-	// if cfg.JWTSecret == "" {
-	// 	missingVars = append(missingVars, "JWT_SECRET")
-	// }
+	if cfg.SupabaseURL == "" {
+		missingVars = append(missingVars, "SUPABASE_URL")
+	}
+	if cfg.SupabaseKey == "" {
+		missingVars = append(missingVars, "SUPABASE_SERVICE_KEY")
+	}
+	if cfg.JWTSecret == "" {
+		missingVars = append(missingVars, "JWT_SECRET")
+	}
 
 	if len(missingVars) > 0 {
 		return fmt.Errorf(
