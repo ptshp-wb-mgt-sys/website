@@ -3,34 +3,50 @@ package routes
 
 import (
 	"pet-mgt/backend/internal/config"
+	"pet-mgt/backend/internal/handlers"
+	"pet-mgt/backend/internal/middleware"
+	"pet-mgt/backend/internal/store"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chiMw "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 )
 
 // SetupRouter sets up the chi router
-func SetupRouter(cfg *config.Config) *chi.Mux {
+func SetupRouter(cfg *config.Config, db store.Database) *chi.Mux {
 	r := chi.NewRouter()
-	setupGloballMiddleware(r)
-
-	r.Use(middleware.Heartbeat("/ping"))
+	setupGlobalMiddleware(cfg, r)
+	r.Use(chiMw.Heartbeat("/ping"))
 
 	r.Route("/api/v1", func(r chi.Router) {
-		protectedRoutes(r)
+		publicRoutes(r)
+		protectedRoutes(r, db, cfg)
 	})
 
 	return r
 }
 
-// protectedRoutes sets up the routes that require authentication
-func protectedRoutes(r chi.Router) {
-	// add protected routes here
+// publicRoutes sets up the public routes
+func publicRoutes(r chi.Router) {
+	r.Use(httprate.LimitByIP(60, 1*time.Minute))
+	// some public handlers handlers
 }
 
-// setupGloballMiddleware sets up the middleware for the router
-func setupGloballMiddleware(r *chi.Mux) {
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(30 * time.Second))
+// protectedRoutes sets up the protected routes
+func protectedRoutes(r chi.Router, db store.Database, cfg *config.Config) {
+	r.Use(httprate.LimitByIP(100, 1*time.Minute))
+	r.Use(middleware.JWTAuth(cfg))
+
+	// User routes
+	r.Get("/profile", handlers.GetUserProfile)
+	// some protected handlers
+}
+
+// setupGlobalMiddleware sets up the middleware for the router
+func setupGlobalMiddleware(cfg *config.Config, r *chi.Mux) {
+	r.Use(middleware.CORS(cfg))
+	r.Use(chiMw.Logger)
+	r.Use(chiMw.Recoverer)
+	r.Use(chiMw.Timeout(30 * time.Second))
 }

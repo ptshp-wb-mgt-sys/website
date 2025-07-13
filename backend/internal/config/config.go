@@ -18,9 +18,9 @@ type Config struct {
 	FrontendURL string
 
 	// Supabase config
-	SupabaseURL string
-	SupabaseKey string
-	JWTSecret   string
+	SupabaseURL        string
+	SupabaseServiceKey string
+	SupabaseJWTSecret  string
 }
 
 // LoadCfg loads the configuration from the environment
@@ -35,9 +35,9 @@ func LoadCfg() (*Config, error) {
 
 		FrontendURL: getEnv("FRONTEND_URL", ""),
 
-		SupabaseURL: getEnv("SUPABASE_URL", ""),
-		SupabaseKey: getEnv("SUPABASE_SERVICE_KEY", ""),
-		JWTSecret:   getEnv("JWT_SECRET", ""),
+		SupabaseURL:        getEnv("SUPABASE_URL", ""),
+		SupabaseServiceKey: getEnv("SUPABASE_SERVICE_KEY", ""),
+		SupabaseJWTSecret:  getEnv("SUPABASE_JWT_SECRET", ""),
 	}
 
 	err := cfg.validateConfig()
@@ -64,11 +64,11 @@ func (cfg *Config) validateConfig() error {
 	if cfg.SupabaseURL == "" {
 		missingVars = append(missingVars, "SUPABASE_URL")
 	}
-	if cfg.SupabaseKey == "" {
+	if cfg.SupabaseServiceKey == "" {
 		missingVars = append(missingVars, "SUPABASE_SERVICE_KEY")
 	}
-	if cfg.JWTSecret == "" {
-		missingVars = append(missingVars, "JWT_SECRET")
+	if cfg.SupabaseJWTSecret == "" {
+		missingVars = append(missingVars, "SUPABASE_JWT_SECRET")
 	}
 
 	if len(missingVars) > 0 {
