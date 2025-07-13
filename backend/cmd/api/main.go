@@ -64,7 +64,10 @@ func main() {
 	cancel()
 
 	// Give the server 30 seconds to finish handling existing requests
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(
+		context.Background(),
+		30*time.Second,
+	)
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {

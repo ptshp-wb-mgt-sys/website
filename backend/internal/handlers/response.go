@@ -7,7 +7,7 @@ import (
 )
 
 // JSONResponse sends a JSON response with the given status and data
-func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
+func JSONResponse(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
@@ -19,8 +19,8 @@ func ErrorResponse(w http.ResponseWriter, status int, message string) {
 }
 
 // SuccessResponse sends a standardized success response
-func SuccessResponse(w http.ResponseWriter, data interface{}) {
-	JSONResponse(w, http.StatusOK, map[string]interface{}{
+func SuccessResponse(w http.ResponseWriter, data any) {
+	JSONResponse(w, http.StatusOK, map[string]any{
 		"success": true,
 		"data":    data,
 	})

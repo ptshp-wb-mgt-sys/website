@@ -30,7 +30,11 @@ func JWTAuth(cfg *config.Config) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := extractToken(r)
 			if token == "" {
-				http.Error(w, "Missing or invalid authorization header", http.StatusUnauthorized)
+				http.Error(
+					w,
+					"Missing or invalid authorization header",
+					http.StatusUnauthorized,
+				)
 				return
 			}
 
@@ -54,7 +58,7 @@ func extractToken(r *http.Request) string {
 		return ""
 	}
 
-	// Expected format: "Bearer <token>"
+	// Expected format: "Bearer token"
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		return ""
@@ -65,14 +69,20 @@ func extractToken(r *http.Request) string {
 
 // verifyToken verifies and parses the JWT token
 func verifyToken(tokenString, secret string) (*UserClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-		// Verify signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secret), nil
-	})
-
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&UserClaims{},
+		func(token *jwt.Token) (any, error) {
+			// Verify signing method
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf(
+					"unexpected signing method: %v",
+					token.Header["alg"],
+				)
+			}
+			return []byte(secret), nil
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

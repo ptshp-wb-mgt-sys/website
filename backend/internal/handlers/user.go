@@ -16,7 +16,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return user info
-	JSONResponse(w, http.StatusOK, map[string]interface{}{
+	JSONResponse(w, http.StatusOK, map[string]any{
 		"user_id": user.Sub,
 		"email":   user.Email,
 		"role":    user.Role,

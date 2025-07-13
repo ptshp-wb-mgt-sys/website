@@ -8,42 +8,6 @@ import (
 	"github.com/supabase-community/supabase-go"
 )
 
-// Database interface defines methods for data access operations
-type Database interface {
-	// User operations
-	GetUserByID(ctx context.Context, userID string) (*User, error)
-
-	// Pet operations (for future implementation)
-	GetPetsByUserID(ctx context.Context, userID string) ([]Pet, error)
-	CreatePet(ctx context.Context, pet *Pet) error
-	UpdatePet(ctx context.Context, pet *Pet) error
-	DeletePet(ctx context.Context, petID string) error
-
-	// Health check
-	Ping(ctx context.Context) error
-
-	// Cleanup
-	Close() error
-}
-
-// User represents a user in the system
-type User struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Role  string `json:"role"`
-}
-
-// Pet represents a pet in the system
-type Pet struct {
-	ID          string `json:"id"`
-	UserID      string `json:"user_id"`
-	Name        string `json:"name"`
-	Species     string `json:"species"`
-	Breed       string `json:"breed"`
-	Age         int    `json:"age"`
-	Description string `json:"description"`
-}
-
 type SupabaseService struct {
 	client *supabase.Client
 	config *config.Config
@@ -74,13 +38,19 @@ func (s *SupabaseService) Ping(ctx context.Context) error {
 }
 
 // GetUserByID retrieves a user by their ID
-func (s *SupabaseService) GetUserByID(ctx context.Context, userID string) (*User, error) {
+func (s *SupabaseService) GetUserByID(
+	ctx context.Context,
+	userID string,
+) (*User, error) {
 	// Implementation will be added when needed
 	return nil, nil
 }
 
 // GetPetsByUserID retrieves all pets for a specific user
-func (s *SupabaseService) GetPetsByUserID(ctx context.Context, userID string) ([]Pet, error) {
+func (s *SupabaseService) GetPetsByUserID(
+	ctx context.Context,
+	userID string,
+) ([]Pet, error) {
 	// Implementation will be added when needed
 	return nil, nil
 }
