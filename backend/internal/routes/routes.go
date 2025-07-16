@@ -37,10 +37,29 @@ func publicRoutes(r chi.Router) {
 func protectedRoutes(r chi.Router, db store.Database, cfg *config.Config) {
 	r.Use(httprate.LimitByIP(100, 1*time.Minute))
 	r.Use(middleware.JWTAuth(cfg))
+	r.Use(middleware.InjectDB(db))
 
 	// User routes
 	r.Get("/profile", handlers.GetUserProfile)
-	// some protected handlers
+	r.Post("/users", handlers.CreateUser)
+	r.Get("/users", handlers.ListUsers)
+	r.Get("/users/{id}", handlers.GetUser)
+	r.Put("/users/{id}", handlers.UpdateUser)
+	r.Delete("/users/{id}", handlers.DeleteUser)
+
+	// Pet routes
+	r.Post("/pets", handlers.CreatePet)
+	r.Get("/pets/{id}", handlers.GetPet)
+	r.Put("/pets/{id}", handlers.UpdatePet)
+	r.Delete("/pets/{id}", handlers.DeletePet)
+	r.Get("/clients/{clientId}/pets", handlers.GetPetsByClient)
+
+	// Medical record routes
+	r.Post("/pets/{petId}/medical-records", handlers.CreateMedicalRecord)
+	r.Get("/pets/{petId}/medical-records", handlers.GetMedicalRecords)
+	r.Get("/medical-records/{id}", handlers.GetMedicalRecord)
+	r.Put("/medical-records/{id}", handlers.UpdateMedicalRecord)
+	r.Delete("/medical-records/{id}", handlers.DeleteMedicalRecord)
 }
 
 // setupGlobalMiddleware sets up the middleware for the router
