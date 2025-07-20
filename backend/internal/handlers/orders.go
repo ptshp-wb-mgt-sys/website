@@ -202,7 +202,7 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		} else if vetID != "" {
 			orders, err = h.db.GetOrdersByVeterinarianID(r.Context(), vetID)
 		} else {
-			// Return empty for now - would need a new method for all orders
+			// NOTE: Return empty for now - would need a new method for all orders
 			orders = []store.Order{}
 		}
 	default:

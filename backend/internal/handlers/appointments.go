@@ -132,7 +132,7 @@ func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Requ
 		} else if vetID != "" {
 			appointments, err = h.db.GetAppointmentsByVeterinarianID(r.Context(), vetID)
 		} else {
-			// Return all appointments would need a new method - for now return empty
+			// NOTE: Return all appointments would need a new method - for now return empty
 			appointments = []store.Appointment{}
 		}
 	default:
@@ -400,7 +400,7 @@ func (h *AppointmentHandler) ListVeterinarians(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	// For now, we'll use the existing ListUsers method and filter by role
+	// NOTE: For now, we'll use the existing ListUsers method and filter by role
 	// In a real implementation, you'd want a dedicated method for listing veterinarians
 	users, err := h.db.ListUsers(r.Context(), limit, offset)
 	if err != nil {

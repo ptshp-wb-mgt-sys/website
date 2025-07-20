@@ -80,7 +80,7 @@ func (s *SupabaseService) GetUserByID(
 // CreateUser creates a new user profile
 func (s *SupabaseService) CreateUser(ctx context.Context, user *User) error {
 	// This method will be implemented based on the user role
-	// For now, return an error as we need to know the specific user type
+	// NOTE: For now, return an error as we need to know the specific user type
 	return fmt.Errorf("use CreateClient or CreateVeterinarian instead")
 }
 
@@ -513,7 +513,7 @@ func (s *SupabaseService) GetAvailableAppointmentSlots(
 	vetID string,
 	date time.Time,
 ) ([]TimeSlot, error) {
-	// This is a simplified implementation
+	// NOTE: This is a simplified implementation
 	// In a real system, you'd need to:
 	// 1. Get veterinarian's working hours for the day
 	// 2. Get existing appointments for that day
