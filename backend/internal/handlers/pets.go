@@ -11,8 +11,20 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// PetHandler handles pet-related HTTP requests
+type PetHandler struct {
+	db store.Database
+}
+
+// NewPetHandler creates a new PetHandler with database dependency
+func NewPetHandler(db store.Database) *PetHandler {
+	return &PetHandler{
+		db: db,
+	}
+}
+
 // CreatePet creates a new pet
-func CreatePet(w http.ResponseWriter, r *http.Request) {
+func (h *PetHandler) CreatePet(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -51,12 +63,7 @@ func CreatePet(w http.ResponseWriter, r *http.Request) {
 
 	pet := store.NewPet(req.OwnerID, req.Name, req.Type, req.Breed, req.DateOfBirth, req.Weight)
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	if err := db.CreatePet(r.Context(), pet); err != nil {
+	if err := h.db.CreatePet(r.Context(), pet); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to create pet")
 		return
 	}
@@ -65,7 +72,7 @@ func CreatePet(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPet retrieves a pet by ID
-func GetPet(w http.ResponseWriter, r *http.Request) {
+func (h *PetHandler) GetPet(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -78,12 +85,7 @@ func GetPet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	pet, err := db.GetPetByID(r.Context(), petID)
+	pet, err := h.db.GetPetByID(r.Context(), petID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Pet not found")
 		return
@@ -99,7 +101,7 @@ func GetPet(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdatePet updates a pet
-func UpdatePet(w http.ResponseWriter, r *http.Request) {
+func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -112,12 +114,7 @@ func UpdatePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	pet, err := db.GetPetByID(r.Context(), petID)
+	pet, err := h.db.GetPetByID(r.Context(), petID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Pet not found")
 		return
@@ -155,7 +152,7 @@ func UpdatePet(w http.ResponseWriter, r *http.Request) {
 	pet.Weight = req.Weight
 	pet.UpdatedAt = time.Now()
 
-	if err := db.UpdatePet(r.Context(), pet); err != nil {
+	if err := h.db.UpdatePet(r.Context(), pet); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to update pet")
 		return
 	}
@@ -164,7 +161,7 @@ func UpdatePet(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeletePet deletes a pet
-func DeletePet(w http.ResponseWriter, r *http.Request) {
+func (h *PetHandler) DeletePet(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -177,12 +174,7 @@ func DeletePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	pet, err := db.GetPetByID(r.Context(), petID)
+	pet, err := h.db.GetPetByID(r.Context(), petID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Pet not found")
 		return
@@ -199,7 +191,7 @@ func DeletePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.DeletePet(r.Context(), petID); err != nil {
+	if err := h.db.DeletePet(r.Context(), petID); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to delete pet")
 		return
 	}
@@ -208,7 +200,7 @@ func DeletePet(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPetsByClient retrieves all pets for a specific client
-func GetPetsByClient(w http.ResponseWriter, r *http.Request) {
+func (h *PetHandler) GetPetsByClient(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -227,12 +219,7 @@ func GetPetsByClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	pets, err := db.GetPetsByUserID(r.Context(), clientID)
+	pets, err := h.db.GetPetsByUserID(r.Context(), clientID)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve pets")
 		return

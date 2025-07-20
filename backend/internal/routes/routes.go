@@ -19,9 +19,12 @@ func SetupRouter(cfg *config.Config, db store.Database) *chi.Mux {
 	setupGlobalMiddleware(cfg, r)
 	r.Use(chiMw.Heartbeat("/ping"))
 
+	// Initialize all handlers with database dependency
+	h := handlers.NewHandlers(db)
+
 	r.Route("/api/v1", func(r chi.Router) {
 		publicRoutes(r)
-		protectedRoutes(r, db, cfg)
+		protectedRoutes(r, h, cfg)
 	})
 
 	return r
@@ -34,38 +37,37 @@ func publicRoutes(r chi.Router) {
 }
 
 // protectedRoutes sets up the protected routes
-func protectedRoutes(r chi.Router, db store.Database, cfg *config.Config) {
+func protectedRoutes(r chi.Router, h *handlers.Handlers, cfg *config.Config) {
 	r.Use(httprate.LimitByIP(100, 1*time.Minute))
 	r.Use(middleware.JWTAuth(cfg))
-	r.Use(middleware.InjectDB(db))
 
 	// User routes
-	r.Get("/profile", handlers.GetUserProfile)
-	r.Post("/users", handlers.CreateUser)
-	r.Get("/users", handlers.ListUsers)
-	r.Get("/users/{id}", handlers.GetUser)
-	r.Put("/users/{id}", handlers.UpdateUser)
-	r.Delete("/users/{id}", handlers.DeleteUser)
+	r.Get("/profile", h.User.GetUserProfile)
+	r.Post("/users", h.User.CreateUser)
+	r.Get("/users", h.User.ListUsers)
+	r.Get("/users/{id}", h.User.GetUser)
+	r.Put("/users/{id}", h.User.UpdateUser)
+	r.Delete("/users/{id}", h.User.DeleteUser)
 
 	// Pet routes
-	r.Post("/pets", handlers.CreatePet)
-	r.Get("/pets/{id}", handlers.GetPet)
-	r.Put("/pets/{id}", handlers.UpdatePet)
-	r.Delete("/pets/{id}", handlers.DeletePet)
-	r.Get("/clients/{clientId}/pets", handlers.GetPetsByClient)
+	r.Post("/pets", h.Pet.CreatePet)
+	r.Get("/pets/{id}", h.Pet.GetPet)
+	r.Put("/pets/{id}", h.Pet.UpdatePet)
+	r.Delete("/pets/{id}", h.Pet.DeletePet)
+	r.Get("/clients/{clientId}/pets", h.Pet.GetPetsByClient)
 
 	// Medical record routes
-	r.Post("/pets/{petId}/medical-records", handlers.CreateMedicalRecord)
-	r.Get("/pets/{petId}/medical-records", handlers.GetMedicalRecords)
-	r.Get("/medical-records/{id}", handlers.GetMedicalRecord)
-	r.Put("/medical-records/{id}", handlers.UpdateMedicalRecord)
-	r.Delete("/medical-records/{id}", handlers.DeleteMedicalRecord)
+	r.Post("/pets/{petId}/medical-records", h.MedicalRecord.CreateMedicalRecord)
+	r.Get("/pets/{petId}/medical-records", h.MedicalRecord.GetMedicalRecords)
+	r.Get("/medical-records/{id}", h.MedicalRecord.GetMedicalRecord)
+	r.Put("/medical-records/{id}", h.MedicalRecord.UpdateMedicalRecord)
+	r.Delete("/medical-records/{id}", h.MedicalRecord.DeleteMedicalRecord)
 }
 
 // setupGlobalMiddleware sets up the middleware for the router
 func setupGlobalMiddleware(cfg *config.Config, r *chi.Mux) {
-	r.Use(middleware.CORS(cfg))
 	r.Use(chiMw.Logger)
 	r.Use(chiMw.Recoverer)
-	r.Use(chiMw.Timeout(30 * time.Second))
+	r.Use(chiMw.Timeout(60 * time.Second))
+	r.Use(middleware.CORS(cfg))
 }

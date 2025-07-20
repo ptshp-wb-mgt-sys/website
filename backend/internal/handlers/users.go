@@ -11,8 +11,37 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// UserHandler handles user-related HTTP requests
+type UserHandler struct {
+	db store.Database
+}
+
+// NewUserHandler creates a new UserHandler with database dependency
+func NewUserHandler(db store.Database) *UserHandler {
+	return &UserHandler{
+		db: db,
+	}
+}
+
+// GetUserProfile returns the authenticated user's profile information
+func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	// Get user from JWT token (already verified by middleware)
+	user, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
+		return
+	}
+
+	// Return user info
+	JSONResponse(w, http.StatusOK, map[string]any{
+		"user_id": user.Sub,
+		"email":   user.Email,
+		"role":    user.Role,
+	})
+}
+
 // CreateUser creates a new user profile
-func CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -38,12 +67,6 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-
 	switch req.Role {
 	case "client":
 		client := &store.Client{
@@ -54,7 +77,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 			Address: req.Address,
 			Role:    req.Role,
 		}
-		if err := db.CreateClient(r.Context(), client); err != nil {
+		if err := h.db.CreateClient(r.Context(), client); err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, "Failed to create client")
 			return
 		}
@@ -68,7 +91,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 			Phone: req.Phone,
 			Role:  req.Role,
 		}
-		if err := db.CreateVeterinarian(r.Context(), vet); err != nil {
+		if err := h.db.CreateVeterinarian(r.Context(), vet); err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, "Failed to create veterinarian")
 			return
 		}
@@ -80,7 +103,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetUser retrieves a user by ID
-func GetUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -99,20 +122,14 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-
 	// Try to get as client first
-	if client, err := db.GetClientByID(r.Context(), userID); err == nil {
+	if client, err := h.db.GetClientByID(r.Context(), userID); err == nil {
 		SuccessResponse(w, client)
 		return
 	}
 
 	// Try to get as veterinarian
-	if vet, err := db.GetVeterinarianByID(r.Context(), userID); err == nil {
+	if vet, err := h.db.GetVeterinarianByID(r.Context(), userID); err == nil {
 		SuccessResponse(w, vet)
 		return
 	}
@@ -121,7 +138,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateUser updates a user profile
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -152,20 +169,14 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-
 	// Try to update as client first
-	if client, err := db.GetClientByID(r.Context(), userID); err == nil {
+	if client, err := h.db.GetClientByID(r.Context(), userID); err == nil {
 		client.Name = req.Name
 		client.Email = req.Email
 		client.Phone = req.Phone
 		client.Address = req.Address
 
-		if err := db.UpdateClient(r.Context(), client); err != nil {
+		if err := h.db.UpdateClient(r.Context(), client); err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, "Failed to update client")
 			return
 		}
@@ -174,12 +185,12 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Try to update as veterinarian
-	if vet, err := db.GetVeterinarianByID(r.Context(), userID); err == nil {
+	if vet, err := h.db.GetVeterinarianByID(r.Context(), userID); err == nil {
 		vet.Name = req.Name
 		vet.Email = req.Email
 		vet.Phone = req.Phone
 
-		if err := db.UpdateVeterinarian(r.Context(), vet); err != nil {
+		if err := h.db.UpdateVeterinarian(r.Context(), vet); err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, "Failed to update veterinarian")
 			return
 		}
@@ -191,7 +202,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteUser deletes a user profile
-func DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -210,12 +221,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	if err := db.DeleteUser(r.Context(), userID); err != nil {
+	if err := h.db.DeleteUser(r.Context(), userID); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to delete user")
 		return
 	}
@@ -224,7 +230,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListUsers lists all users with pagination
-func ListUsers(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -255,12 +261,7 @@ func ListUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	users, err := db.ListUsers(r.Context(), limit, offset)
+	users, err := h.db.ListUsers(r.Context(), limit, offset)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to list users")
 		return
