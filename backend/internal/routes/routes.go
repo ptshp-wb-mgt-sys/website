@@ -23,8 +23,18 @@ func SetupRouter(cfg *config.Config, db store.Database) *chi.Mux {
 	h := handlers.NewHandlers(db)
 
 	r.Route("/api/v1", func(r chi.Router) {
-		publicRoutes(r, h)
-		protectedRoutes(r, h, cfg)
+		// Public routes with their own middleware
+		r.Group(func(r chi.Router) {
+			r.Use(httprate.LimitByIP(60, 1*time.Minute))
+			publicRoutes(r, h)
+		})
+
+		// Protected routes with their own middleware
+		r.Group(func(r chi.Router) {
+			r.Use(httprate.LimitByIP(100, 1*time.Minute))
+			r.Use(middleware.JWTAuth(cfg))
+			protectedRoutes(r, h)
+		})
 	})
 
 	return r
@@ -32,7 +42,7 @@ func SetupRouter(cfg *config.Config, db store.Database) *chi.Mux {
 
 // publicRoutes sets up the public routes
 func publicRoutes(r chi.Router, h *handlers.Handlers) {
-	r.Use(httprate.LimitByIP(60, 1*time.Minute))
+	// Middleware is now handled in the caller
 
 	// Public QR code access (no authentication required)
 	r.Get("/public/pets/{publicUrl}", h.QRCode.GetPublicPetProfile)
@@ -43,9 +53,8 @@ func publicRoutes(r chi.Router, h *handlers.Handlers) {
 }
 
 // protectedRoutes sets up the protected routes
-func protectedRoutes(r chi.Router, h *handlers.Handlers, cfg *config.Config) {
-	r.Use(httprate.LimitByIP(100, 1*time.Minute))
-	r.Use(middleware.JWTAuth(cfg))
+func protectedRoutes(r chi.Router, h *handlers.Handlers) {
+	// Middleware is now handled in the caller
 
 	// User routes
 	r.Get("/profile", h.User.GetUserProfile)
