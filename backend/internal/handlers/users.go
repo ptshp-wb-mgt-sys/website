@@ -92,7 +92,11 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 			Role:  req.Role,
 		}
 		if err := h.db.CreateVeterinarian(r.Context(), vet); err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, "Failed to create veterinarian")
+			ErrorResponse(
+				w,
+				http.StatusInternalServerError,
+				"Failed to create veterinarian",
+			)
 			return
 		}
 		SuccessResponse(w, vet)
@@ -191,7 +195,11 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		vet.Phone = req.Phone
 
 		if err := h.db.UpdateVeterinarian(r.Context(), vet); err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, "Failed to update veterinarian")
+			ErrorResponse(
+				w,
+				http.StatusInternalServerError,
+				"Failed to update veterinarian",
+			)
 			return
 		}
 		SuccessResponse(w, vet)

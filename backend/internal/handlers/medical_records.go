@@ -24,7 +24,10 @@ func NewMedicalRecordHandler(db store.Database) *MedicalRecordHandler {
 }
 
 // CreateMedicalRecord creates a new medical record for a pet
-func (h *MedicalRecordHandler) CreateMedicalRecord(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) CreateMedicalRecord(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -33,7 +36,11 @@ func (h *MedicalRecordHandler) CreateMedicalRecord(w http.ResponseWriter, r *htt
 
 	// Only veterinarians can create medical records
 	if user.Role != "veterinarian" && user.Role != "admin" {
-		ErrorResponse(w, http.StatusForbidden, "Only veterinarians can create medical records")
+		ErrorResponse(
+			w,
+			http.StatusForbidden,
+			"Only veterinarians can create medical records",
+		)
 		return
 	}
 
@@ -79,7 +86,11 @@ func (h *MedicalRecordHandler) CreateMedicalRecord(w http.ResponseWriter, r *htt
 	)
 
 	if err := h.db.CreateMedicalRecord(r.Context(), record); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Failed to create medical record")
+		ErrorResponse(
+			w,
+			http.StatusInternalServerError,
+			"Failed to create medical record",
+		)
 		return
 	}
 
@@ -87,7 +98,10 @@ func (h *MedicalRecordHandler) CreateMedicalRecord(w http.ResponseWriter, r *htt
 }
 
 // GetMedicalRecords retrieves all medical records for a pet
-func (h *MedicalRecordHandler) GetMedicalRecords(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) GetMedicalRecords(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -115,7 +129,11 @@ func (h *MedicalRecordHandler) GetMedicalRecords(w http.ResponseWriter, r *http.
 
 	records, err := h.db.GetMedicalRecordsByPetID(r.Context(), petID)
 	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve medical records")
+		ErrorResponse(
+			w,
+			http.StatusInternalServerError,
+			"Failed to retrieve medical records",
+		)
 		return
 	}
 
@@ -123,7 +141,10 @@ func (h *MedicalRecordHandler) GetMedicalRecords(w http.ResponseWriter, r *http.
 }
 
 // GetMedicalRecord retrieves a specific medical record
-func (h *MedicalRecordHandler) GetMedicalRecord(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) GetMedicalRecord(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -159,7 +180,10 @@ func (h *MedicalRecordHandler) GetMedicalRecord(w http.ResponseWriter, r *http.R
 }
 
 // UpdateMedicalRecord updates a medical record
-func (h *MedicalRecordHandler) UpdateMedicalRecord(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) UpdateMedicalRecord(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -168,7 +192,11 @@ func (h *MedicalRecordHandler) UpdateMedicalRecord(w http.ResponseWriter, r *htt
 
 	// Only veterinarians can update medical records
 	if user.Role != "veterinarian" && user.Role != "admin" {
-		ErrorResponse(w, http.StatusForbidden, "Only veterinarians can update medical records")
+		ErrorResponse(
+			w,
+			http.StatusForbidden,
+			"Only veterinarians can update medical records",
+		)
 		return
 	}
 
@@ -206,7 +234,11 @@ func (h *MedicalRecordHandler) UpdateMedicalRecord(w http.ResponseWriter, r *htt
 	record.UpdatedAt = time.Now()
 
 	if err := h.db.UpdateMedicalRecord(r.Context(), record); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Failed to update medical record")
+		ErrorResponse(
+			w,
+			http.StatusInternalServerError,
+			"Failed to update medical record",
+		)
 		return
 	}
 
@@ -214,7 +246,10 @@ func (h *MedicalRecordHandler) UpdateMedicalRecord(w http.ResponseWriter, r *htt
 }
 
 // DeleteMedicalRecord deletes a medical record
-func (h *MedicalRecordHandler) DeleteMedicalRecord(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) DeleteMedicalRecord(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -223,7 +258,11 @@ func (h *MedicalRecordHandler) DeleteMedicalRecord(w http.ResponseWriter, r *htt
 
 	// Only veterinarians can delete medical records
 	if user.Role != "veterinarian" && user.Role != "admin" {
-		ErrorResponse(w, http.StatusForbidden, "Only veterinarians can delete medical records")
+		ErrorResponse(
+			w,
+			http.StatusForbidden,
+			"Only veterinarians can delete medical records",
+		)
 		return
 	}
 
@@ -241,7 +280,11 @@ func (h *MedicalRecordHandler) DeleteMedicalRecord(w http.ResponseWriter, r *htt
 	}
 
 	if err := h.db.DeleteMedicalRecord(r.Context(), recordID); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Failed to delete medical record")
+		ErrorResponse(
+			w,
+			http.StatusInternalServerError,
+			"Failed to delete medical record",
+		)
 		return
 	}
 

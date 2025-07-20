@@ -8,6 +8,10 @@ type Handlers struct {
 	User          *UserHandler
 	Pet           *PetHandler
 	MedicalRecord *MedicalRecordHandler
+	QRCode        *QRCodeHandler
+	Appointment   *AppointmentHandler
+	Product       *ProductHandler
+	Order         *OrderHandler
 }
 
 // NewHandlers creates a new Handlers instance with all handler dependencies
@@ -16,5 +20,9 @@ func NewHandlers(db store.Database) *Handlers {
 		User:          NewUserHandler(db),
 		Pet:           NewPetHandler(db),
 		MedicalRecord: NewMedicalRecordHandler(db),
+		QRCode:        NewQRCodeHandler(db),
+		Appointment:   NewAppointmentHandler(db),
+		Product:       NewProductHandler(db),
+		Order:         NewOrderHandler(db),
 	}
 }

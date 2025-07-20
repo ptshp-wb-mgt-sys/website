@@ -47,7 +47,11 @@ func (h *PetHandler) CreatePet(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization check: clients can only create pets for themselves, admins can create for anyone
 	if user.Role == "client" && req.OwnerID != user.Sub {
-		ErrorResponse(w, http.StatusForbidden, "Clients can only create pets for themselves")
+		ErrorResponse(
+			w,
+			http.StatusForbidden,
+			"Clients can only create pets for themselves",
+		)
 		return
 	}
 
@@ -61,7 +65,14 @@ func (h *PetHandler) CreatePet(w http.ResponseWriter, r *http.Request) {
 		req.OwnerID = user.Sub
 	}
 
-	pet := store.NewPet(req.OwnerID, req.Name, req.Type, req.Breed, req.DateOfBirth, req.Weight)
+	pet := store.NewPet(
+		req.OwnerID,
+		req.Name,
+		req.Type,
+		req.Breed,
+		req.DateOfBirth,
+		req.Weight,
+	)
 
 	if err := h.db.CreatePet(r.Context(), pet); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to create pet")
@@ -127,7 +138,11 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Role == "veterinarian" {
-		ErrorResponse(w, http.StatusForbidden, "Veterinarians cannot update pet details")
+		ErrorResponse(
+			w,
+			http.StatusForbidden,
+			"Veterinarians cannot update pet details",
+		)
 		return
 	}
 

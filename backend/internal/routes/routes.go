@@ -23,7 +23,7 @@ func SetupRouter(cfg *config.Config, db store.Database) *chi.Mux {
 	h := handlers.NewHandlers(db)
 
 	r.Route("/api/v1", func(r chi.Router) {
-		publicRoutes(r)
+		publicRoutes(r, h)
 		protectedRoutes(r, h, cfg)
 	})
 
@@ -31,9 +31,15 @@ func SetupRouter(cfg *config.Config, db store.Database) *chi.Mux {
 }
 
 // publicRoutes sets up the public routes
-func publicRoutes(r chi.Router) {
+func publicRoutes(r chi.Router, h *handlers.Handlers) {
 	r.Use(httprate.LimitByIP(60, 1*time.Minute))
-	// some public handlers handlers
+
+	// Public QR code access (no authentication required)
+	r.Get("/public/pets/{publicUrl}", h.QRCode.GetPublicPetProfile)
+	r.Get(
+		"/pets/public/{publicUrl}",
+		h.QRCode.GetPublicPetProfile,
+	) // Alternative route format
 }
 
 // protectedRoutes sets up the protected routes
@@ -56,12 +62,45 @@ func protectedRoutes(r chi.Router, h *handlers.Handlers, cfg *config.Config) {
 	r.Delete("/pets/{id}", h.Pet.DeletePet)
 	r.Get("/clients/{clientId}/pets", h.Pet.GetPetsByClient)
 
+	// QR Code routes
+	r.Post("/pets/{petId}/qr-code", h.QRCode.GenerateQRCode)
+	r.Get("/pets/{petId}/qr-code", h.QRCode.GetQRCode)
+	r.Put("/pets/{petId}/qr-code", h.QRCode.UpdateQRCode)
+	r.Delete("/pets/{petId}/qr-code", h.QRCode.DeleteQRCode)
+
 	// Medical record routes
 	r.Post("/pets/{petId}/medical-records", h.MedicalRecord.CreateMedicalRecord)
 	r.Get("/pets/{petId}/medical-records", h.MedicalRecord.GetMedicalRecords)
 	r.Get("/medical-records/{id}", h.MedicalRecord.GetMedicalRecord)
 	r.Put("/medical-records/{id}", h.MedicalRecord.UpdateMedicalRecord)
 	r.Delete("/medical-records/{id}", h.MedicalRecord.DeleteMedicalRecord)
+
+	// Appointment routes
+	r.Post("/appointments", h.Appointment.CreateAppointment)
+	r.Get("/appointments", h.Appointment.GetAppointments)
+	r.Get("/appointments/{id}", h.Appointment.GetAppointment)
+	r.Put("/appointments/{id}", h.Appointment.UpdateAppointment)
+	r.Delete("/appointments/{id}", h.Appointment.DeleteAppointment)
+
+	// Veterinarian and appointment availability routes
+	r.Get("/veterinarians", h.Appointment.ListVeterinarians)
+	r.Get("/veterinarians/{vetId}/availability", h.Appointment.GetAvailableSlots)
+
+	// Product routes
+	r.Post("/products", h.Product.CreateProduct)
+	r.Get("/products", h.Product.GetProducts)
+	r.Get("/products/{id}", h.Product.GetProduct)
+	r.Put("/products/{id}", h.Product.UpdateProduct)
+	r.Delete("/products/{id}", h.Product.DeleteProduct)
+	r.Get("/veterinarians/{vetId}/products", h.Product.GetVeterinarianProducts)
+	r.Put("/products/{id}/stock", h.Product.UpdateProductStock)
+
+	// Order routes
+	r.Post("/orders", h.Order.CreateOrder)
+	r.Get("/orders", h.Order.GetOrders)
+	r.Get("/orders/{id}", h.Order.GetOrder)
+	r.Put("/orders/{id}/status", h.Order.UpdateOrderStatus)
+	r.Delete("/orders/{id}", h.Order.CancelOrder)
 }
 
 // setupGlobalMiddleware sets up the middleware for the router

@@ -10,6 +10,7 @@ import (
 	"pet-mgt/backend/internal/middleware"
 	"pet-mgt/backend/internal/store"
 	"testing"
+	"time"
 )
 
 // MockDatabase implements the Database interface for testing
@@ -193,6 +194,202 @@ func (m *MockDatabase) GetVeterinarianByID(
 		return &store.Veterinarian{ID: u.ID, Email: u.Email, Role: u.Role}, nil
 	}
 	return nil, nil
+}
+
+// QR Code operations (stub implementations for testing)
+func (m *MockDatabase) GetQRCodeByPetID(
+	ctx context.Context,
+	petID string,
+) (*store.QRCode, error) {
+	return nil, nil
+}
+
+func (m *MockDatabase) GetQRCodeByPublicURL(
+	ctx context.Context,
+	publicURL string,
+) (*store.QRCode, error) {
+	return nil, nil
+}
+
+func (m *MockDatabase) CreateQRCode(
+	ctx context.Context,
+	qrCode *store.QRCode,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) UpdateQRCode(
+	ctx context.Context,
+	qrCode *store.QRCode,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) DeleteQRCode(
+	ctx context.Context,
+	qrCodeID string,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) GetPublicPetProfile(
+	ctx context.Context,
+	publicURL string,
+) (*store.PublicPetProfile, error) {
+	return nil, nil
+}
+
+// Appointment operations (stub implementations for testing)
+func (m *MockDatabase) GetAppointmentsByClientID(
+	ctx context.Context,
+	clientID string,
+) ([]store.Appointment, error) {
+	return []store.Appointment{}, nil
+}
+
+func (m *MockDatabase) GetAppointmentsByVeterinarianID(
+	ctx context.Context,
+	vetID string,
+) ([]store.Appointment, error) {
+	return []store.Appointment{}, nil
+}
+
+func (m *MockDatabase) GetAppointmentByID(
+	ctx context.Context,
+	appointmentID string,
+) (*store.Appointment, error) {
+	return nil, nil
+}
+
+func (m *MockDatabase) CreateAppointment(
+	ctx context.Context,
+	appointment *store.Appointment,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) UpdateAppointment(
+	ctx context.Context,
+	appointment *store.Appointment,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) DeleteAppointment(
+	ctx context.Context,
+	appointmentID string,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) GetAvailableAppointmentSlots(
+	ctx context.Context,
+	vetID string,
+	date time.Time,
+) ([]store.TimeSlot, error) {
+	return []store.TimeSlot{}, nil
+}
+
+// Product operations (stub implementations for testing)
+func (m *MockDatabase) GetProductsByVeterinarianID(
+	ctx context.Context,
+	vetID string,
+) ([]store.Product, error) {
+	return []store.Product{}, nil
+}
+
+func (m *MockDatabase) GetProductByID(
+	ctx context.Context,
+	productID string,
+) (*store.Product, error) {
+	return nil, nil
+}
+
+func (m *MockDatabase) CreateProduct(
+	ctx context.Context,
+	product *store.Product,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) UpdateProduct(
+	ctx context.Context,
+	product *store.Product,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) DeleteProduct(
+	ctx context.Context,
+	productID string,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) ListProducts(
+	ctx context.Context,
+	filters store.ProductFilters,
+) ([]store.Product, error) {
+	return []store.Product{}, nil
+}
+
+func (m *MockDatabase) UpdateProductStock(
+	ctx context.Context,
+	productID string,
+	quantity int,
+) error {
+	return nil
+}
+
+// Order operations (stub implementations for testing)
+func (m *MockDatabase) GetOrdersByClientID(
+	ctx context.Context,
+	clientID string,
+) ([]store.Order, error) {
+	return []store.Order{}, nil
+}
+
+func (m *MockDatabase) GetOrdersByVeterinarianID(
+	ctx context.Context,
+	vetID string,
+) ([]store.Order, error) {
+	return []store.Order{}, nil
+}
+
+func (m *MockDatabase) GetOrderByID(
+	ctx context.Context,
+	orderID string,
+) (*store.Order, error) {
+	return nil, nil
+}
+
+func (m *MockDatabase) CreateOrder(
+	ctx context.Context,
+	order *store.Order,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) UpdateOrderStatus(
+	ctx context.Context,
+	orderID string,
+	status string,
+) error {
+	return nil
+}
+
+func (m *MockDatabase) GetOrderItems(
+	ctx context.Context,
+	orderID string,
+) ([]store.OrderItem, error) {
+	return []store.OrderItem{}, nil
+}
+
+func (m *MockDatabase) CreateOrderItem(
+	ctx context.Context,
+	item *store.OrderItem,
+) error {
+	return nil
 }
 
 // Helper function to create a request with context
