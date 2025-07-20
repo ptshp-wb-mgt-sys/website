@@ -11,8 +11,20 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// MedicalRecordHandler handles medical record-related HTTP requests
+type MedicalRecordHandler struct {
+	db store.Database
+}
+
+// NewMedicalRecordHandler creates a new MedicalRecordHandler with database dependency
+func NewMedicalRecordHandler(db store.Database) *MedicalRecordHandler {
+	return &MedicalRecordHandler{
+		db: db,
+	}
+}
+
 // CreateMedicalRecord creates a new medical record for a pet
-func CreateMedicalRecord(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) CreateMedicalRecord(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -45,12 +57,7 @@ func CreateMedicalRecord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify pet exists
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	_, err := db.GetPetByID(r.Context(), petID)
+	_, err := h.db.GetPetByID(r.Context(), petID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Pet not found")
 		return
@@ -71,7 +78,7 @@ func CreateMedicalRecord(w http.ResponseWriter, r *http.Request) {
 		req.Notes,
 	)
 
-	if err := db.CreateMedicalRecord(r.Context(), record); err != nil {
+	if err := h.db.CreateMedicalRecord(r.Context(), record); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to create medical record")
 		return
 	}
@@ -80,7 +87,7 @@ func CreateMedicalRecord(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetMedicalRecords retrieves all medical records for a pet
-func GetMedicalRecords(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) GetMedicalRecords(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -93,14 +100,8 @@ func GetMedicalRecords(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-
 	// Verify pet exists and check authorization
-	pet, err := db.GetPetByID(r.Context(), petID)
+	pet, err := h.db.GetPetByID(r.Context(), petID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Pet not found")
 		return
@@ -112,7 +113,7 @@ func GetMedicalRecords(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	records, err := db.GetMedicalRecordsByPetID(r.Context(), petID)
+	records, err := h.db.GetMedicalRecordsByPetID(r.Context(), petID)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve medical records")
 		return
@@ -122,7 +123,7 @@ func GetMedicalRecords(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetMedicalRecord retrieves a specific medical record
-func GetMedicalRecord(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) GetMedicalRecord(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
@@ -131,29 +132,24 @@ func GetMedicalRecord(w http.ResponseWriter, r *http.Request) {
 
 	recordID := chi.URLParam(r, "id")
 	if recordID == "" {
-		ErrorResponse(w, http.StatusBadRequest, "Medical record ID is required")
+		ErrorResponse(w, http.StatusBadRequest, "Record ID is required")
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	record, err := db.GetMedicalRecordByID(r.Context(), recordID)
+	record, err := h.db.GetMedicalRecordByID(r.Context(), recordID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Medical record not found")
 		return
 	}
 
 	// Get the pet to check ownership
-	pet, err := db.GetPetByID(r.Context(), record.PetID)
+	pet, err := h.db.GetPetByID(r.Context(), record.PetID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Pet not found")
 		return
 	}
 
-	// Authorization check: clients can only access their own pet's records, vets can access any, admins can access any
+	// Authorization check: clients can only access their own pet's records, vets and admins can access any
 	if user.Role == "client" && pet.OwnerID != user.Sub {
 		ErrorResponse(w, http.StatusForbidden, "Insufficient permissions")
 		return
@@ -163,38 +159,28 @@ func GetMedicalRecord(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateMedicalRecord updates a medical record
-func UpdateMedicalRecord(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) UpdateMedicalRecord(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
 		return
 	}
 
+	// Only veterinarians can update medical records
+	if user.Role != "veterinarian" && user.Role != "admin" {
+		ErrorResponse(w, http.StatusForbidden, "Only veterinarians can update medical records")
+		return
+	}
+
 	recordID := chi.URLParam(r, "id")
 	if recordID == "" {
-		ErrorResponse(w, http.StatusBadRequest, "Medical record ID is required")
+		ErrorResponse(w, http.StatusBadRequest, "Record ID is required")
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
-		return
-	}
-	record, err := db.GetMedicalRecordByID(r.Context(), recordID)
+	record, err := h.db.GetMedicalRecordByID(r.Context(), recordID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Medical record not found")
-		return
-	}
-
-	// Authorization check: only the veterinarian who created the record or admin can update it
-	if user.Role == "veterinarian" && record.VeterinarianID != user.Sub {
-		ErrorResponse(w, http.StatusForbidden, "Only the veterinarian who created this record can update it")
-		return
-	}
-
-	if user.Role == "client" {
-		ErrorResponse(w, http.StatusForbidden, "Clients cannot update medical records")
 		return
 	}
 
@@ -219,7 +205,7 @@ func UpdateMedicalRecord(w http.ResponseWriter, r *http.Request) {
 	record.Notes = req.Notes
 	record.UpdatedAt = time.Now()
 
-	if err := db.UpdateMedicalRecord(r.Context(), record); err != nil {
+	if err := h.db.UpdateMedicalRecord(r.Context(), record); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to update medical record")
 		return
 	}
@@ -228,42 +214,33 @@ func UpdateMedicalRecord(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteMedicalRecord deletes a medical record
-func DeleteMedicalRecord(w http.ResponseWriter, r *http.Request) {
+func (h *MedicalRecordHandler) DeleteMedicalRecord(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
 		return
 	}
 
-	recordID := chi.URLParam(r, "id")
-	if recordID == "" {
-		ErrorResponse(w, http.StatusBadRequest, "Medical record ID is required")
+	// Only veterinarians can delete medical records
+	if user.Role != "veterinarian" && user.Role != "admin" {
+		ErrorResponse(w, http.StatusForbidden, "Only veterinarians can delete medical records")
 		return
 	}
 
-	db, ok := middleware.GetDBFromContext(r.Context())
-	if !ok {
-		ErrorResponse(w, http.StatusInternalServerError, "Database not found in context")
+	recordID := chi.URLParam(r, "id")
+	if recordID == "" {
+		ErrorResponse(w, http.StatusBadRequest, "Record ID is required")
 		return
 	}
-	record, err := db.GetMedicalRecordByID(r.Context(), recordID)
+
+	// Check if record exists
+	_, err := h.db.GetMedicalRecordByID(r.Context(), recordID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Medical record not found")
 		return
 	}
 
-	// Authorization check: only the veterinarian who created the record or admin can delete it
-	if user.Role == "veterinarian" && record.VeterinarianID != user.Sub {
-		ErrorResponse(w, http.StatusForbidden, "Only the veterinarian who created this record can delete it")
-		return
-	}
-
-	if user.Role == "client" {
-		ErrorResponse(w, http.StatusForbidden, "Clients cannot delete medical records")
-		return
-	}
-
-	if err := db.DeleteMedicalRecord(r.Context(), recordID); err != nil {
+	if err := h.db.DeleteMedicalRecord(r.Context(), recordID); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to delete medical record")
 		return
 	}
