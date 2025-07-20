@@ -17,7 +17,7 @@ A Go-based backend API for a comprehensive pet-shop and veterinary clinic manage
 - **Framework**: Chi router
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: JWT tokens from Supabase
-- **Middleware**: CORS, rate limiting, authentication, database injection
+- **Middleware**: CORS, rate limiting, authentication, logging, recovery, timeout
 
 ## Project Structure
 
@@ -27,15 +27,15 @@ backend/
 ├── internal/
 │   ├── config/config.go         # Configuration management
 │   ├── handlers/                # HTTP request handlers
+│   │   ├── handlers.go          # Handler initialization
+│   │   ├── handlers_test.go     # Handler tests
 │   │   ├── response.go          # Response utilities
-│   │   ├── user.go              # User profile handler
 │   │   ├── users.go             # User management handlers
 │   │   ├── pets.go              # Pet management handlers
 │   │   └── medical_records.go   # Medical record handlers
 │   ├── middleware/              # HTTP middleware
 │   │   ├── auth.go              # JWT authentication
-│   │   ├── cors.go              # CORS handling
-│   │   └── db.go                # Database injection
+│   │   └── cors.go              # CORS handling
 │   ├── routes/routes.go         # Route definitions
 │   └── store/                   # Data access layer
 │       ├── db.go                # Supabase client
@@ -318,7 +318,7 @@ Updates a medical record.
 }
 ```
 
-**Authorization:** Only the veterinarian who created the record or admins can update it.
+**Authorization:** Veterinarians and admins can update medical records.
 
 #### Delete Medical Record
 
@@ -328,7 +328,7 @@ DELETE /api/v1/medical-records/{id}
 
 Deletes a medical record.
 
-**Authorization:** Only the veterinarian who created the record or admins can delete it.
+**Authorization:** Veterinarians and admins can delete medical records.
 
 ## Database Schema
 
@@ -365,7 +365,7 @@ SUPABASE_JWT_SECRET=your_supabase_jwt_secret
 2. **Set up environment variables:**
 
    ```bash
-   cp .env.example .env
+   cp env.example .env
    # Edit .env with your Supabase credentials
    ```
 
@@ -449,7 +449,12 @@ go test ./...
 
 # Run with coverage
 go test -cover ./...
+
+# Run test script for manual API testing
+./test_api.sh
 ```
+
+See `MANUAL_TESTING.md` for detailed manual testing instructions and endpoint examples.
 
 ## Deployment
 
