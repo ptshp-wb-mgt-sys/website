@@ -1,85 +1,99 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { useAuthStore } from '@/stores/auth'
+import Button from '@/components/ui/Button.vue'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+/**
+ * Handle user sign out
+ */
+const handleSignOut = async () => {
+  await authStore.signOut()
+  router.push('/login')
+}
+
+/**
+ * Initialize auth on app mount
+ */
+onMounted(() => {
+  authStore.initialize()
+})
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <div class="min-h-screen bg-seasalt">
+    <!-- Navigation (only show when authenticated) -->
+    <nav v-if="authStore.isAuthenticated" class="bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <RouterLink to="/" class="text-xl font-bold text-rich-black">
+              PetCare
+            </RouterLink>
+          </div>
+          
+          <div class="flex items-center space-x-8">
+            <RouterLink 
+              to="/" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'home' }"
+            >
+              Dashboard
+            </RouterLink>
+            <RouterLink 
+              to="/pets" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'pets' }"
+            >
+              Pets
+            </RouterLink>
+            <RouterLink 
+              to="/appointments" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'appointments' }"
+            >
+              Appointments
+            </RouterLink>
+            <RouterLink 
+              to="/products" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'products' }"
+            >
+              Products
+            </RouterLink>
+            
+            <!-- User Menu -->
+            <div class="flex items-center space-x-4">
+              <span class="text-sm text-gray-600">
+                {{ authStore.user?.email }}
+              </span>
+              <Button variant="ghost" size="sm" @click="handleSignOut">
+                Sign out
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+    <!-- Main Content -->
+    <main :class="authStore.isAuthenticated ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8' : ''">
+      <!-- Loading state -->
+      <div v-if="authStore.loading" class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-aquamarine mx-auto"></div>
+          <p class="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+      
+      <!-- Router content -->
+      <RouterView v-else />
+    </main>
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-</style>
