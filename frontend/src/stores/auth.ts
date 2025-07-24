@@ -19,9 +19,24 @@ export const useAuthStore = defineStore('auth', () => {
       session.value = currentSession
       user.value = currentSession?.user ?? null
 
-      supabase.auth.onAuthStateChange((event, newSession) => {
+      supabase.auth.onAuthStateChange(async (event, newSession) => {
         session.value = newSession
         user.value = newSession?.user ?? null
+        
+        // Initialize user profile when signed in
+        if (event === 'SIGNED_IN' && newSession) {
+          // Dynamically import to avoid circular dependency
+          const { useUserStore } = await import('./user')
+          const userStore = useUserStore()
+          await userStore.initialize()
+        }
+        
+        // Clear profile when signed out
+        if (event === 'SIGNED_OUT') {
+          const { useUserStore } = await import('./user')
+          const userStore = useUserStore()
+          userStore.clearProfile()
+        }
       })
     } catch (error) {
       console.error('Error initializing auth:', error)

@@ -61,10 +61,16 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only admins can create any user type, others can only create their own profile
-	if user.Role != "admin" && req.Role != user.Role {
-		ErrorResponse(w, http.StatusForbidden, "Insufficient permissions")
-		return
+		// Check if user already has a profile
+	existingClient, clientErr := h.db.GetClientByID(r.Context(), user.Sub)
+	existingVet, vetErr := h.db.GetVeterinarianByID(r.Context(), user.Sub)
+	
+	// If user already has a profile, they can't create another one (unless they're admin)
+	if (clientErr == nil && existingClient != nil) || (vetErr == nil && existingVet != nil) {
+		if user.Role != "admin" {
+			ErrorResponse(w, http.StatusForbidden, "User already has a profile")
+			return
+		}
 	}
 
 	switch req.Role {

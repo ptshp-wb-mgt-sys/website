@@ -84,7 +84,11 @@ const error = ref('')
  * Handle login form submission
  */
 const handleLogin = async () => {
-  if (!email.value || !password.value) {
+  // Trim whitespace and check values
+  const emailValue = email.value?.trim() || ''
+  const passwordValue = password.value?.trim() || ''
+  
+  if (!emailValue || !passwordValue) {
     error.value = 'Please fill in all fields'
     return
   }
@@ -93,12 +97,12 @@ const handleLogin = async () => {
   error.value = ''
 
   try {
-    const { error: loginError } = await authStore.signIn(email.value, password.value)
+    const { error: loginError } = await authStore.signIn(emailValue, passwordValue)
     
     if (loginError) {
       error.value = loginError.message
     } else {
-      router.push('/')
+      router.push('/dashboard')
     }
   } catch (err) {
     error.value = 'An unexpected error occurred'

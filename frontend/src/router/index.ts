@@ -18,8 +18,19 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
+      path: '/profile-setup',
+      name: 'profile-setup',
+      component: () => import('../views/auth/ProfileSetupView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/',
-      name: 'home',
+      name: 'landing',
+      component: () => import('../views/LandingView.vue')
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
       component: HomeView,
       meta: { requiresAuth: true }
     },
@@ -39,6 +50,12 @@ const router = createRouter({
       path: '/products',
       name: 'products',
       component: () => import('../views/ProductsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
       meta: { requiresAuth: true }
     },
   ],
@@ -69,7 +86,23 @@ router.beforeEach(async (to, from, next) => {
   if (requiresAuth && !isAuthenticated) {
     next('/login')
   } else if (requiresGuest && isAuthenticated) {
-    next('/')
+    next('/dashboard')
+  } else if (isAuthenticated && to.name === 'landing') {
+    // Redirect authenticated users away from landing page to dashboard
+    next('/dashboard')
+  } else if (isAuthenticated && requiresAuth && to.name !== 'profile-setup') {
+    // Check if user has completed their profile
+    const { useUserStore } = await import('@/stores/user')
+    const userStore = useUserStore()
+    
+    if (!userStore.hasProfile) {
+      await userStore.fetchProfile()
+      if (!userStore.hasProfile) {
+        next('/profile-setup')
+        return
+      }
+    }
+    next()
   } else {
     next()
   }

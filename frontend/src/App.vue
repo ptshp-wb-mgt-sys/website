@@ -1,84 +1,29 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import Button from '@/components/ui/Button.vue'
+import { useUserStore } from '@/stores/user'
+import Navigation from '@/components/Navigation.vue'
 
-const router = useRouter()
 const authStore = useAuthStore()
-
-/**
- * Handle user sign out
- */
-const handleSignOut = async () => {
-  await authStore.signOut()
-  router.push('/login')
-}
+const userStore = useUserStore()
 
 /**
  * Initialize auth on app mount
  */
-onMounted(() => {
-  authStore.initialize()
+onMounted(async () => {
+  await authStore.initialize()
+  // Initialize user profile if already authenticated
+  if (authStore.isAuthenticated) {
+    await userStore.initialize()
+  }
 })
 </script>
 
 <template>
   <div class="min-h-screen bg-seasalt">
-    <!-- Navigation (only show when authenticated) -->
-    <nav v-if="authStore.isAuthenticated" class="bg-white border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
-            <RouterLink to="/" class="text-xl font-bold text-rich-black">
-              PetCare
-            </RouterLink>
-          </div>
-          
-          <div class="flex items-center space-x-8">
-            <RouterLink 
-              to="/" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'home' }"
-            >
-              Dashboard
-            </RouterLink>
-            <RouterLink 
-              to="/pets" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'pets' }"
-            >
-              Pets
-            </RouterLink>
-            <RouterLink 
-              to="/appointments" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'appointments' }"
-            >
-              Appointments
-            </RouterLink>
-            <RouterLink 
-              to="/products" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'products' }"
-            >
-              Products
-            </RouterLink>
-            
-            <!-- User Menu -->
-            <div class="flex items-center space-x-4">
-              <span class="text-sm text-gray-600">
-                {{ authStore.user?.email }}
-              </span>
-              <Button variant="ghost" size="sm" @click="handleSignOut">
-                Sign out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <!-- Navigation -->
+    <Navigation />
 
     <!-- Main Content -->
     <main :class="authStore.isAuthenticated ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8' : ''">
