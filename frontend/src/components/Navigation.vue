@@ -17,27 +17,95 @@
           >
             Dashboard
           </RouterLink>
-          <RouterLink 
-            to="/pets" 
-            class="text-gray-700 hover:text-aquamarine transition-colors"
-            :class="{ 'text-aquamarine': $route.name === 'pets' }"
-          >
-            Pets
-          </RouterLink>
-          <RouterLink 
-            to="/appointments" 
-            class="text-gray-700 hover:text-aquamarine transition-colors"
-            :class="{ 'text-aquamarine': $route.name === 'appointments' }"
-          >
-            Appointments
-          </RouterLink>
-          <RouterLink 
-            to="/products" 
-            class="text-gray-700 hover:text-aquamarine transition-colors"
-            :class="{ 'text-aquamarine': $route.name === 'products' }"
-          >
-            Products
-          </RouterLink>
+          
+          <!-- Client Navigation -->
+          <template v-if="userStore.isClient">
+            <RouterLink 
+              to="/my-pets" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'my-pets' }"
+            >
+              My Pets
+            </RouterLink>
+            <RouterLink 
+              to="/book-appointment" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'book-appointment' }"
+            >
+              Book Appointment
+            </RouterLink>
+            <RouterLink 
+              to="/browse-products" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'browse-products' }"
+            >
+              Browse Products
+            </RouterLink>
+          </template>
+          
+          <!-- Veterinarian Navigation -->
+          <template v-if="userStore.isVeterinarian">
+            <RouterLink 
+              to="/my-schedule" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'my-schedule' }"
+            >
+              My Schedule
+            </RouterLink>
+            <RouterLink 
+              to="/patients" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'patients' }"
+            >
+              Patients
+            </RouterLink>
+            <RouterLink 
+              to="/manage-products" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'manage-products' }"
+            >
+              Manage Products
+            </RouterLink>
+            <RouterLink 
+              to="/medical-records" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'medical-records' }"
+            >
+              Medical Records
+            </RouterLink>
+          </template>
+          
+          <!-- Admin Navigation -->
+          <template v-if="userStore.isAdmin">
+            <RouterLink 
+              to="/users" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'users' }"
+            >
+              Users
+            </RouterLink>
+            <RouterLink 
+              to="/all-pets" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'all-pets' }"
+            >
+              All Pets
+            </RouterLink>
+            <RouterLink 
+              to="/all-appointments" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'all-appointments' }"
+            >
+              All Appointments
+            </RouterLink>
+            <RouterLink 
+              to="/analytics" 
+              class="text-gray-700 hover:text-aquamarine transition-colors"
+              :class="{ 'text-aquamarine': $route.name === 'analytics' }"
+            >
+              Analytics
+            </RouterLink>
+          </template>
           
           <!-- User Menu -->
           <div class="flex items-center space-x-4">

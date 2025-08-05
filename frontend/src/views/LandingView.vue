@@ -39,11 +39,11 @@
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- Pet Records -->
         <Card class="p-8 text-center">
           <div class="w-16 h-16 bg-aquamarine-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <div class="w-8 h-8 bg-aquamarine rounded-full"></div>
+            <Heart class="w-8 h-8 text-aquamarine" />
           </div>
           <h3 class="text-xl font-semibold text-rich-black mb-4">Pet Records</h3>
           <p class="text-gray-600">
@@ -55,7 +55,7 @@
         <!-- QR Codes -->
         <Card class="p-8 text-center">
           <div class="w-16 h-16 bg-aquamarine-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <div class="w-8 h-8 bg-aquamarine rounded-full"></div>
+            <QrCode class="w-8 h-8 text-aquamarine" />
           </div>
           <h3 class="text-xl font-semibold text-rich-black mb-4">QR Codes</h3>
           <p class="text-gray-600">
@@ -67,7 +67,7 @@
         <!-- Appointments -->
         <Card class="p-8 text-center">
           <div class="w-16 h-16 bg-aquamarine-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <div class="w-8 h-8 bg-aquamarine rounded-full"></div>
+            <Calendar class="w-8 h-8 text-aquamarine" />
           </div>
           <h3 class="text-xl font-semibold text-rich-black mb-4">Appointments</h3>
           <p class="text-gray-600">
@@ -75,41 +75,70 @@
             and reminder notifications.
           </p>
         </Card>
+      </div>
+    </div>
 
-        <!-- Medical Records -->
-        <Card class="p-8 text-center">
-          <div class="w-16 h-16 bg-aquamarine-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <div class="w-8 h-8 bg-aquamarine rounded-full"></div>
+    <!-- Additional Features Section -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- For Pet Owners -->
+        <Card class="p-8">
+          <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 bg-aquamarine-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Users class="w-6 h-6 text-aquamarine" />
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-rich-black mb-3">For Pet Owners</h3>
+              <p class="text-gray-600 mb-4">
+                Access your pet's complete medical history, schedule appointments, 
+                and purchase recommended products all in one place.
+              </p>
+              <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-center">
+                  <Check class="w-4 h-4 text-aquamarine mr-2" />
+                  Medical history tracking
+                </li>
+                <li class="flex items-center">
+                  <Check class="w-4 h-4 text-aquamarine mr-2" />
+                  Appointment scheduling
+                </li>
+                <li class="flex items-center">
+                  <Check class="w-4 h-4 text-aquamarine mr-2" />
+                  Emergency QR codes
+                </li>
+              </ul>
+            </div>
           </div>
-          <h3 class="text-xl font-semibold text-rich-black mb-4">Medical Records</h3>
-          <p class="text-gray-600">
-            Veterinarians can create and update medical records with detailed 
-            visit notes and treatment plans.
-          </p>
-        </Card>
-
-        <!-- Product Store -->
-        <Card class="p-8 text-center">
-          <div class="w-16 h-16 bg-aquamarine-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <div class="w-8 h-8 bg-aquamarine rounded-full"></div>
-          </div>
-          <h3 class="text-xl font-semibold text-rich-black mb-4">Pet Products</h3>
-          <p class="text-gray-600">
-            Browse and purchase pet food, medicine, and accessories directly 
-            from veterinarians and pet stores.
-          </p>
         </Card>
 
         <!-- For Professionals -->
-        <Card class="p-8 text-center">
-          <div class="w-16 h-16 bg-aquamarine-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <div class="w-8 h-8 bg-aquamarine rounded-full"></div>
+        <Card class="p-8">
+          <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 bg-aquamarine-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Stethoscope class="w-6 h-6 text-aquamarine" />
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-rich-black mb-3">For Professionals</h3>
+              <p class="text-gray-600 mb-4">
+                Veterinarians and pet care professionals get powerful tools for 
+                managing patient records and growing their practice.
+              </p>
+              <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-center">
+                  <Check class="w-4 h-4 text-aquamarine mr-2" />
+                  Digital medical records
+                </li>
+                <li class="flex items-center">
+                  <Check class="w-4 h-4 text-aquamarine mr-2" />
+                  Product marketplace
+                </li>
+                <li class="flex items-center">
+                  <Check class="w-4 h-4 text-aquamarine mr-2" />
+                  Practice management tools
+                </li>
+              </ul>
+            </div>
           </div>
-          <h3 class="text-xl font-semibold text-rich-black mb-4">For Professionals</h3>
-          <p class="text-gray-600">
-            Veterinarians and pet care professionals get powerful tools for 
-            managing clients, schedules, and business operations.
-          </p>
         </Card>
       </div>
     </div>
@@ -147,6 +176,7 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { Heart, QrCode, Calendar, Users, Stethoscope, Check } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import Footer from '@/components/Footer.vue'
