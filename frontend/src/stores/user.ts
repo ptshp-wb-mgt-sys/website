@@ -31,6 +31,7 @@ export const useUserStore = defineStore('user', () => {
   const profile = ref<UserProfile | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const lastFetchedAt = ref<number | null>(null)
 
   const authStore = useAuthStore()
 
@@ -68,9 +69,14 @@ export const useUserStore = defineStore('user', () => {
   })
 
   /**
-   * Fetch user profile from backend
+   * Fetch user profile from backend with simple cache TTL.
    */
-  const fetchProfile = async () => {
+  const fetchProfile = async (options?: { force?: boolean; ttlMs?: number }) => {
+    const force = options?.force === true
+    const ttlMs = options?.ttlMs ?? 5 * 60 * 1000
+    if (!force && profile.value && lastFetchedAt.value && Date.now() - lastFetchedAt.value < ttlMs) {
+      return
+    }
     if (!authStore.session?.access_token) {
       error.value = 'No authentication token'
       return
@@ -91,6 +97,7 @@ export const useUserStore = defineStore('user', () => {
         if (response.status === 404) {
           // User hasn't created profile yet
           profile.value = null
+          lastFetchedAt.value = Date.now()
           return
         }
         throw new Error(`Failed to fetch profile: ${response.statusText}`)
@@ -104,6 +111,7 @@ export const useUserStore = defineStore('user', () => {
       } else {
         profile.value = data
       }
+      lastFetchedAt.value = Date.now()
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch profile'
       console.error('Error fetching profile:', err)
@@ -220,6 +228,7 @@ export const useUserStore = defineStore('user', () => {
   const clearProfile = () => {
     profile.value = null
     error.value = null
+    lastFetchedAt.value = null
   }
 
   /**
@@ -236,6 +245,7 @@ export const useUserStore = defineStore('user', () => {
     profile,
     loading,
     error,
+    lastFetchedAt,
     
     // Computed
     isClient,

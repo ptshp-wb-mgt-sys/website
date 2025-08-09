@@ -36,6 +36,7 @@ export const usePetsStore = defineStore('pets', () => {
   const pets = ref<Pet[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const lastFetchedAt = ref<number | null>(null)
 
   const authStore = useAuthStore()
 
@@ -44,9 +45,15 @@ export const usePetsStore = defineStore('pets', () => {
   const hasPets = computed(() => pets.value.length > 0)
 
   /**
-   * Fetch pets for the current user
+   * Fetch pets for the current user.
+   * Skips network if data is fresh unless `force` is true.
    */
-  const fetchPets = async () => {
+  const fetchPets = async (options?: { force?: boolean; ttlMs?: number }) => {
+    const force = options?.force === true
+    const ttlMs = options?.ttlMs ?? 2 * 60 * 1000
+    if (!force && pets.value.length > 0 && lastFetchedAt.value && Date.now() - lastFetchedAt.value < ttlMs) {
+      return
+    }
     if (!authStore.session?.access_token) {
       error.value = 'No authentication token'
       return
@@ -73,6 +80,7 @@ export const usePetsStore = defineStore('pets', () => {
         if (response.status === 404) {
           // User doesn't have a profile yet, return empty array
           pets.value = []
+          lastFetchedAt.value = Date.now()
           return
         }
         throw new Error(`Failed to fetch pets: ${response.statusText}`)
@@ -80,6 +88,7 @@ export const usePetsStore = defineStore('pets', () => {
 
       const data = await response.json()
       pets.value = data.data || data
+      lastFetchedAt.value = Date.now()
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch pets'
       console.error('Error fetching pets:', err)
@@ -241,6 +250,7 @@ export const usePetsStore = defineStore('pets', () => {
   const clearPets = () => {
     pets.value = []
     error.value = null
+    lastFetchedAt.value = null
   }
 
   /**
@@ -257,6 +267,7 @@ export const usePetsStore = defineStore('pets', () => {
     pets,
     loading,
     error,
+    lastFetchedAt,
     
     // Computed
     petsCount,

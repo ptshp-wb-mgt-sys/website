@@ -35,13 +35,21 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
   const recordsByPetId = ref<Record<string, MedicalRecord[]>>({})
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const lastFetchedAtByPetId = ref<Record<string, number>>({})
 
   const authStore = useAuthStore()
 
   /**
    * Load medical records for a given pet from the API and cache them by `petId`.
+   * Uses a per-pet TTL cache unless `force` is set.
    */
-  const fetchByPetId = async (petId: string) => {
+  const fetchByPetId = async (petId: string, options?: { force?: boolean; ttlMs?: number }) => {
+    const force = options?.force === true
+    const ttlMs = options?.ttlMs ?? 2 * 60 * 1000
+    const last = lastFetchedAtByPetId.value[petId]
+    if (!force && recordsByPetId.value[petId] && last && Date.now() - last < ttlMs) {
+      return recordsByPetId.value[petId]!
+    }
     if (!authStore.session?.access_token) {
       error.value = 'No authentication token'
       return [] as MedicalRecord[]
@@ -65,6 +73,7 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
       const data = await response.json()
       const records = (data.data || data) as MedicalRecord[]
       recordsByPetId.value[petId] = records
+      lastFetchedAtByPetId.value[petId] = Date.now()
       return records
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch medical records'
@@ -185,6 +194,7 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
 
       const current = recordsByPetId.value[petId] || []
       recordsByPetId.value[petId] = current.filter(r => r.id !== recordId)
+      lastFetchedAtByPetId.value[petId] = Date.now()
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to delete medical record'
       throw err
@@ -205,6 +215,7 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
     recordsByPetId,
     loading,
     error,
+    lastFetchedAtByPetId,
     // Actions
     fetchByPetId,
     createRecord,

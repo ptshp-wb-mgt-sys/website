@@ -44,13 +44,20 @@ export const useAppointmentsStore = defineStore('appointments', () => {
   const appointments = ref<Appointment[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const lastFetchedAt = ref<number | null>(null)
 
   const authStore = useAuthStore()
 
   /**
    * Load current user's appointments from the API.
+   * Skips network if cached within ttl, unless `force`.
    */
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (options?: { force?: boolean; ttlMs?: number }) => {
+    const force = options?.force === true
+    const ttlMs = options?.ttlMs ?? 60 * 1000
+    if (!force && appointments.value.length > 0 && lastFetchedAt.value && Date.now() - lastFetchedAt.value < ttlMs) {
+      return
+    }
     if (!authStore.session?.access_token) {
       error.value = 'No authentication token'
       return
@@ -73,6 +80,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
 
       const data = await response.json()
       appointments.value = (data.data || data) as Appointment[]
+      lastFetchedAt.value = Date.now()
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch appointments'
       console.error('Error fetching appointments:', err)
@@ -199,6 +207,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
   const clearAppointments = () => {
     appointments.value = []
     error.value = null
+    lastFetchedAt.value = null
   }
 
   /**
@@ -215,6 +224,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     appointments,
     loading,
     error,
+    lastFetchedAt,
     // Computed
     upcomingAppointments,
     pastAppointments,
