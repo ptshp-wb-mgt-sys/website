@@ -163,6 +163,9 @@
         @close="closeAddPetModal"
         @pet-added="handlePetAdded"
       />
+
+      <!-- QR Preview Modal -->
+      <QRPreviewModal :is-open="showQRModal" :pet-id="qrPetId" @close="() => { showQRModal = false; qrPetId = '' }" />
     </div>
   </div>
 </template>
@@ -177,6 +180,8 @@ import { useRouter } from 'vue-router'
 import { usePetsStore } from '@/stores/pets'
 import { useAppointmentsStore, type Appointment } from '@/stores/appointments'
 import { useMedicalRecordsStore, type MedicalRecord } from '@/stores/medicalRecords'
+import QRPreviewModal from '@/components/QRPreviewModal.vue'
+import { useQRCodesStore } from '@/stores/qrcodes'
 
 // Modal state
 const showAddPetModal = ref(false)
@@ -207,6 +212,7 @@ const petsStore = usePetsStore()
 const appointmentsStore = useAppointmentsStore()
 const router = useRouter()
 const recordsStore = useMedicalRecordsStore()
+const qrStore = useQRCodesStore()
 
 /**
  * Number of pets for stats card.
@@ -292,11 +298,33 @@ const formatApptWhen = (appt: Appointment) => new Date(appt.appointment_date).to
  */
 const goToMyPets = () => router.push({ name: 'my-pets' })
 const goToAppointments = () => router.push({ name: 'book-appointment' })
-const goToQr = (petId: string) => router.push({ name: 'my-pets' })
 const goToProducts = () => router.push({ name: 'browse-products' })
 const goToPetProfile = (petId: string) => router.push({ name: 'pet-profile', params: { id: petId } })
 
 // Small utils
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString()
-</script>
 
+// QR Preview modal state
+const showQRModal = ref(false)
+const qrPetId = ref<string>('')
+
+/**
+ * Open QR preview modal for a pet; generates QR if missing.
+ */
+const openQRModal = async (petId: string) => {
+  try {
+    await qrStore.getOrCreateForPet(petId)
+    qrPetId.value = petId
+    showQRModal.value = true
+  } catch (e) {
+    console.error('Failed to open QR preview', e)
+  }
+}
+
+/**
+ * Dashboard QR button handler; just delegates to modal logic.
+ */
+const goToQr = async (petId: string) => {
+  await openQRModal(petId)
+}
+</script>

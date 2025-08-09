@@ -79,9 +79,8 @@
             </div>
             
             <div class="flex space-x-2" @click.stop>
-              <Button variant="outline" size="sm" class="flex-1" @click="openQRModal(pet.id)">
-                <QrCode class="w-4 h-4 mr-1" />
-                QR Code
+              <Button variant="ghost" size="sm" @click="openQRModal(pet.id)" title="QR Code">
+                <QrCode class="w-4 h-4" />
               </Button>
               <Button variant="outline" size="sm" class="flex-1" @click="$router.push({ name: 'pet-profile', params: { id: pet.id } })">
                 <FileText class="w-4 h-4 mr-1" />
