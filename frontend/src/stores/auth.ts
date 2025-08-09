@@ -36,6 +36,11 @@ export const useAuthStore = defineStore('auth', () => {
             const petsStore = usePetsStore()
             await petsStore.initialize()
           }
+
+          // Initialize appointments for all roles
+          const { useAppointmentsStore } = await import('./appointments')
+          const apptStore = useAppointmentsStore()
+          await apptStore.initialize()
         }
         
         // Clear profile when signed out
@@ -48,6 +53,11 @@ export const useAuthStore = defineStore('auth', () => {
           const { usePetsStore } = await import('./pets')
           const petsStore = usePetsStore()
           petsStore.clearPets()
+
+          // Clear appointments
+          const { useAppointmentsStore } = await import('./appointments')
+          const apptStore = useAppointmentsStore()
+          apptStore.clearAppointments()
         }
       })
     } catch (error) {

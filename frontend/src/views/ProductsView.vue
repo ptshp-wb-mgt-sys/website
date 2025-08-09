@@ -144,6 +144,13 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+
+// TODO: Wire to backend once product browsing is prioritized. Minimal placeholder state here.
+const products = ref([])
+onMounted(() => {
+  // keep placeholder rendering for now
+})
 </script> 

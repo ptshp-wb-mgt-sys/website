@@ -21,7 +21,7 @@
           </div>
           <div class="flex-1">
             <p class="text-sm font-medium text-gray-600">My Pets</p>
-            <p class="text-2xl font-bold text-rich-black">3</p>
+            <p class="text-2xl font-bold text-rich-black">{{ petsCount }}</p>
           </div>
         </div>
       </Card>
@@ -33,7 +33,7 @@
           </div>
           <div class="flex-1">
             <p class="text-sm font-medium text-gray-600">Upcoming Appointments</p>
-            <p class="text-2xl font-bold text-rich-black">2</p>
+            <p class="text-2xl font-bold text-rich-black">{{ upcomingCount }}</p>
           </div>
         </div>
       </Card>
@@ -69,43 +69,27 @@
       <Card class="p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-rich-black">My Pets</h2>
-          <Button variant="ghost" size="sm">View All</Button>
+          <Button variant="ghost" size="sm" @click="goToMyPets">View All</Button>
         </div>
         <div class="space-y-3">
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div v-for="pet in myPetsPreview" :key="pet.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div class="flex items-center space-x-3">
               <div class="w-10 h-10 bg-aquamarine-100 rounded-full flex items-center justify-center">
                 <Heart class="w-5 h-5 text-aquamarine" />
               </div>
               <div>
-                <p class="font-medium text-rich-black">Buddy</p>
-                <p class="text-sm text-gray-600">Golden Retriever • 3 years</p>
+                <p class="font-medium text-rich-black">{{ pet.name }}</p>
+                <p class="text-sm text-gray-600">{{ pet.breed }} • {{ formatAge(pet.date_of_birth) }}</p>
               </div>
             </div>
             <div class="flex space-x-2">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" @click="goToQr(pet.id)">
                 <QrCode class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm">View</Button>
+              <Button variant="ghost" size="sm" @click="goToMyPets">View</Button>
             </div>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 bg-aquamarine-100 rounded-full flex items-center justify-center">
-                <Heart class="w-5 h-5 text-aquamarine" />
-              </div>
-              <div>
-                <p class="font-medium text-rich-black">Luna</p>
-                <p class="text-sm text-gray-600">Persian Cat • 2 years</p>
-              </div>
-            </div>
-            <div class="flex space-x-2">
-              <Button variant="ghost" size="sm">
-                <QrCode class="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm">View</Button>
-            </div>
-          </div>
+          <div v-if="myPetsPreview.length === 0" class="text-sm text-gray-600">No pets yet.</div>
         </div>
       </Card>
 
@@ -116,21 +100,15 @@
           <Button variant="ghost" size="sm">Book New</Button>
         </div>
         <div class="space-y-3">
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div v-for="appt in upcomingPreview" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div>
-              <p class="font-medium text-rich-black">Buddy - Annual Checkup</p>
-              <p class="text-sm text-gray-600">Dr. Smith • Today, 2:00 PM</p>
-              <p class="text-xs text-aquamarine">Reminder sent</p>
+              <p class="font-medium text-rich-black">{{ formatApptTitle(appt) }}</p>
+              <p class="text-sm text-gray-600">{{ formatApptWhen(appt) }}</p>
+              <p v-if="appt.status === 'confirmed'" class="text-xs text-aquamarine">Confirmed</p>
             </div>
-            <Button variant="ghost" size="sm">Details</Button>
+            <Button variant="ghost" size="sm" @click="goToAppointments">Details</Button>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <p class="font-medium text-rich-black">Luna - Vaccination</p>
-              <p class="text-sm text-gray-600">Dr. Johnson • Tomorrow, 10:30 AM</p>
-            </div>
-            <Button variant="ghost" size="sm">Details</Button>
-          </div>
+          <div v-if="upcomingPreview.length === 0" class="text-sm text-gray-600">No upcoming appointments.</div>
         </div>
       </Card>
 
@@ -164,7 +142,7 @@
       <Card class="p-6">
         <h2 class="text-lg font-semibold text-rich-black mb-4">Quick Actions</h2>
         <div class="grid grid-cols-2 gap-3">
-          <Button variant="outline" class="flex flex-col items-center p-4 h-auto">
+          <Button variant="outline" class="flex flex-col items-center p-4 h-auto" @click="goToAppointments">
             <Calendar class="w-6 h-6 mb-2" />
             <span class="text-sm">Book Appointment</span>
           </Button>
@@ -172,11 +150,11 @@
             <Plus class="w-6 h-6 mb-2" />
             <span class="text-sm">Add Pet</span>
           </Button>
-          <Button variant="outline" class="flex flex-col items-center p-4 h-auto">
+          <Button variant="outline" class="flex flex-col items-center p-4 h-auto" @click="goToProducts">
             <ShoppingBag class="w-6 h-6 mb-2" />
             <span class="text-sm">Shop Products</span>
           </Button>
-          <Button variant="outline" class="flex flex-col items-center p-4 h-auto">
+          <Button variant="outline" class="flex flex-col items-center p-4 h-auto" @click="goToMyPets">
             <QrCode class="w-6 h-6 mb-2" />
             <span class="text-sm">QR Codes</span>
           </Button>
@@ -193,11 +171,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Plus, Heart, Calendar, FileText, ShoppingBag, QrCode } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import AddPetModal from '@/components/AddPetModal.vue'
+import { useRouter } from 'vue-router'
+import { usePetsStore } from '@/stores/pets'
+import { useAppointmentsStore, type Appointment } from '@/stores/appointments'
 
 // Modal state
 const showAddPetModal = ref(false)
@@ -222,4 +203,74 @@ const closeAddPetModal = () => {
 const handlePetAdded = () => {
   closeAddPetModal()
 }
+
+// Stores
+const petsStore = usePetsStore()
+const appointmentsStore = useAppointmentsStore()
+const router = useRouter()
+
+/**
+ * Number of pets for stats card.
+ */
+const petsCount = computed(() => petsStore.petsCount)
+
+/**
+ * Preview of pets (first 2) for dashboard card.
+ */
+const myPetsPreview = computed(() => petsStore.pets.slice(0, 2))
+
+/**
+ * Count of upcoming appointments for stats card.
+ */
+const upcomingCount = computed(() => appointmentsStore.upcomingAppointments.length)
+
+/**
+ * Preview of upcoming appointments (first 2).
+ */
+const upcomingPreview = computed(() => appointmentsStore.upcomingAppointments.slice(0, 2))
+
+/**
+ * On mount, ensure data is loaded.
+ */
+onMounted(async () => {
+  if (petsStore.pets.length === 0) {
+    await petsStore.fetchPets()
+  }
+  if (appointmentsStore.appointments.length === 0) {
+    await appointmentsStore.fetchAppointments()
+  }
+})
+
+/**
+ * Format age from date string.
+ */
+const formatAge = (dateOfBirth: string) => {
+  const birthDate = new Date(dateOfBirth + 'T00:00:00')
+  const today = new Date()
+  const years = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    return `${years - 1} years`
+  }
+  if (years === 0) {
+    const months = monthDiff + (today.getDate() >= birthDate.getDate() ? 0 : -1)
+    return months <= 0 ? 'Less than 1 month' : `${months} months`
+  }
+  return `${years} years`
+}
+
+/**
+ * Helpers to format appointments.
+ */
+const formatApptTitle = (appt: Appointment) => `${appt.reason}`
+const formatApptWhen = (appt: Appointment) => new Date(appt.appointment_date).toLocaleString()
+
+/**
+ * Navigation helpers.
+ */
+const goToMyPets = () => router.push({ name: 'my-pets' })
+const goToAppointments = () => router.push({ name: 'book-appointment' })
+const goToQr = (petId: string) => router.push({ name: 'my-pets' })
+const goToProducts = () => router.push({ name: 'browse-products' })
 </script>
+

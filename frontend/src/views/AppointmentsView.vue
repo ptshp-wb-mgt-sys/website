@@ -6,7 +6,7 @@
         <h1 class="text-3xl font-bold text-rich-black">{{ pageTitle }}</h1>
         <p class="text-gray-600 mt-1">{{ pageSubtitle }}</p>
       </div>
-      <Button v-if="userStore.isClient">
+      <Button v-if="userStore.isClient" @click="showBook = true">
         <Plus class="w-4 h-4 mr-2" />
         Book Appointment
       </Button>
@@ -24,22 +24,22 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Select Pet</label>
-            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option>Buddy (Golden Retriever)</option>
-              <option>Luna (Persian Cat)</option>
+            <select v-model="form.pet_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="" disabled>Select pet</option>
+              <option v-for="pet in pets" :key="pet.id" :value="pet.id">{{ pet.name }} ({{ pet.breed }})</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Select Veterinarian</label>
-            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option>Dr. Sarah Johnson</option>
-              <option>Dr. Mike Wilson</option>
-              <option>Dr. Emily Davis</option>
+            <select v-model="form.veterinarian_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="" disabled>Select veterinarian</option>
+              <option v-for="vet in veterinarians" :key="vet.id" :value="vet.id">{{ vet.name }}</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Visit</label>
-            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <select v-model="form.reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="" disabled>Select reason</option>
               <option>Routine Checkup</option>
               <option>Vaccination</option>
               <option>Emergency</option>
@@ -47,35 +47,31 @@
             </select>
           </div>
         </div>
-        <Button class="mt-4">Find Available Times</Button>
+        <div class="mt-4 flex space-x-2">
+          <input v-model="date" type="date" class="px-3 py-2 border border-gray-300 rounded-lg" />
+          <Button @click="loadSlots">Find Available Times</Button>
+        </div>
+        <div v-if="slots.length" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+          <Button v-for="s in slots" :key="s.start_time" variant="outline" @click="selectSlot(s)">
+            {{ new Date(s.start_time).toLocaleTimeString() }}
+          </Button>
+        </div>
+        <div class="mt-4" v-if="selectedSlot">
+          <Button @click="book">Confirm Booking</Button>
+        </div>
       </Card>
 
       <!-- My Appointments -->
       <div class="space-y-8">
         <section>
           <h2 class="text-xl font-semibold text-rich-black mb-4">My Upcoming Appointments</h2>
-          <div class="space-y-4">
-            <Card class="p-6">
+           <div class="space-y-4">
+            <Card v-for="appt in upcomingAppointments" :key="appt.id" class="p-6">
               <div class="flex items-center justify-between">
                 <div class="space-y-1">
-                  <h3 class="font-semibold text-rich-black">Buddy - Annual Checkup</h3>
-                  <p class="text-sm text-gray-600">Dr. Sarah Johnson • Veterinary Clinic</p>
-                  <p class="text-sm text-gray-600">Today, 2:00 PM - 2:30 PM</p>
-                  <p class="text-xs text-green-600">✓ Confirmed</p>
-                </div>
-                <div class="flex space-x-2">
-                  <Button variant="outline" size="sm">Reschedule</Button>
-                  <Button variant="ghost" size="sm" class="text-red-600">Cancel</Button>
-                </div>
-              </div>
-            </Card>
-            <Card class="p-6">
-              <div class="flex items-center justify-between">
-                <div class="space-y-1">
-                  <h3 class="font-semibold text-rich-black">Luna - Vaccination</h3>
-                  <p class="text-sm text-gray-600">Dr. Mike Wilson • Pet Care Center</p>
-                  <p class="text-sm text-gray-600">Tomorrow, 10:00 AM - 10:30 AM</p>
-                  <p class="text-xs text-blue-600">⏱ Reminder set</p>
+                  <h3 class="font-semibold text-rich-black">{{ appt.reason }}</h3>
+                  <p class="text-sm text-gray-600">{{ new Date(appt.appointment_date).toLocaleString() }}</p>
+                  <p class="text-xs" :class="appt.status === 'confirmed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
                 </div>
                 <div class="flex space-x-2">
                   <Button variant="outline" size="sm">Reschedule</Button>
@@ -285,8 +281,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { usePetsStore } from '@/stores/pets'
+import { useAppointmentsStore, type CreateAppointmentRequest, type TimeSlot } from '@/stores/appointments'
 import { 
   Plus, Settings, Calendar, Clock, Users, TrendingUp, AlertCircle 
 } from 'lucide-vue-next'
@@ -294,6 +292,25 @@ import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 
 const userStore = useUserStore()
+const petsStore = usePetsStore()
+const apptStore = useAppointmentsStore()
+
+// Booking UI state
+const showBook = ref(false)
+const veterinarians = ref<{ id: string; name: string }[]>([])
+const slots = ref<TimeSlot[]>([])
+const selectedSlot = ref<TimeSlot | null>(null)
+const date = ref<string>('')
+const form = ref<CreateAppointmentRequest>({ veterinarian_id: '', pet_id: '', appointment_date: '', reason: '' })
+
+onMounted(async () => {
+  if (userStore.isClient) {
+    if (petsStore.pets.length === 0) await petsStore.fetchPets()
+    await apptStore.fetchAppointments()
+    const vets = await apptStore.listVeterinarians()
+    veterinarians.value = vets.map(v => ({ id: v.id, name: v.name }))
+  }
+})
 
 /**
  * Computed properties for dynamic content
@@ -354,4 +371,45 @@ const weekDays = [
     slots: ['Closed', 'Closed', 'Closed', 'Closed']
   }
 ]
+
+// Derived lists
+const upcomingAppointments = computed(() => apptStore.upcomingAppointments)
+
+// Pets for select
+const pets = computed(() => petsStore.pets)
+
+/**
+ * Load available time slots for the selected vet and date.
+ */
+const loadSlots = async () => {
+  if (!form.value.veterinarian_id || !date.value) return
+  const iso = new Date(date.value + 'T00:00:00').toISOString()
+  slots.value = await apptStore.getAvailableSlots(form.value.veterinarian_id, iso)
+}
+
+/**
+ * Choose a specific slot; sets the appointment start time.
+ */
+const selectSlot = (slot: TimeSlot) => {
+  selectedSlot.value = slot
+  form.value.appointment_date = slot.start_time
+}
+
+/**
+ * Book the appointment with the selected options.
+ */
+const book = async () => {
+  await apptStore.createAppointment({
+    veterinarian_id: form.value.veterinarian_id,
+    pet_id: form.value.pet_id,
+    appointment_date: form.value.appointment_date,
+    reason: form.value.reason,
+  })
+  // Reset UI
+  showBook.value = false
+  form.value = { veterinarian_id: '', pet_id: '', appointment_date: '', reason: '' }
+  date.value = ''
+  slots.value = []
+  selectedSlot.value = null
+}
 </script> 

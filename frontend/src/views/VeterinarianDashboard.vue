@@ -21,7 +21,7 @@
           </div>
           <div class="flex-1">
             <p class="text-sm font-medium text-gray-600">Today's Appointments</p>
-            <p class="text-2xl font-bold text-rich-black">8</p>
+            <p class="text-2xl font-bold text-rich-black">{{ todaysCount }}</p>
           </div>
         </div>
       </Card>
@@ -185,7 +185,13 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, computed } from 'vue'
 import { Plus, Heart, Calendar, FileText, Users, DollarSign, Package, QrCode } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import { useAppointmentsStore } from '@/stores/appointments'
+
+const apptStore = useAppointmentsStore()
+onMounted(() => apptStore.fetchAppointments())
+const todaysCount = computed(() => apptStore.todaysAppointments.length)
 </script>
