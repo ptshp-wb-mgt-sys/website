@@ -79,7 +79,7 @@
             </div>
             
             <div class="flex space-x-2" @click.stop>
-              <Button variant="outline" size="sm" class="flex-1" @click="$router.push({ name: 'pet-profile', params: { id: pet.id } })">
+              <Button variant="outline" size="sm" class="flex-1" @click="openQRModal(pet.id)">
                 <QrCode class="w-4 h-4 mr-1" />
                 QR Code
               </Button>
@@ -192,6 +192,9 @@
       @close="closeEditPetModal"
       @pet-updated="handlePetUpdated"
     />
+
+    <!-- QR Preview Modal -->
+    <QRPreviewModal :is-open="showQRModal" :pet-id="qrPetId" @close="closeQRModal" />
   </div>
 </template>
 
@@ -204,14 +207,19 @@ import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import AddPetModal from '@/components/AddPetModal.vue'
 import EditPetModal from '@/components/EditPetModal.vue'
+import QRPreviewModal from '@/components/QRPreviewModal.vue'
+import { useQRCodesStore } from '@/stores/qrcodes'
 
 const userStore = useUserStore()
 const petsStore = usePetsStore()
+const qrStore = useQRCodesStore()
 
 // Modal state
 const showAddPetModal = ref(false)
 const showEditPetModal = ref(false)
 const selectedPet = ref<Pet | null>(null)
+const showQRModal = ref(false)
+const qrPetId = ref<string>('')
 
 /**
  * Format age from date of birth
@@ -264,6 +272,24 @@ const handlePetAdded = () => {
 const openEditPetModal = (pet: Pet) => {
   selectedPet.value = pet
   showEditPetModal.value = true
+}
+/**
+ * Open QR preview modal (fetch or generate QR first)
+ */
+const openQRModal = async (petId: string) => {
+  try {
+    await qrStore.getOrCreateForPet(petId)
+    qrPetId.value = petId
+    showQRModal.value = true
+  } catch (e) {
+    console.error('Failed to load QR', e)
+  }
+}
+
+/** Close QR modal */
+const closeQRModal = () => {
+  showQRModal.value = false
+  qrPetId.value = ''
 }
 
 /**

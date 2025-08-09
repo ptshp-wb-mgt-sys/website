@@ -38,7 +38,7 @@
             <p><span class="font-medium">Weight:</span> {{ pet?.weight }} kg</p>
           </div>
           <div class="pt-3 border-t">
-            <Button variant="outline" size="sm"><QrCode class="w-4 h-4 mr-1" /> QR Code</Button>
+            <Button variant="outline" size="sm" @click="openQRModal"><QrCode class="w-4 h-4 mr-1" /> QR Code</Button>
           </div>
         </div>
       </Card>
@@ -112,6 +112,9 @@
       </div>
     </div>
   </div>
+
+  <!-- QR Preview Modal -->
+  <QRPreviewModal :is-open="showQRModal" :pet-id="id" @close="() => (showQRModal = false)" />
 </template>
 
 <script setup lang="ts">
@@ -123,12 +126,15 @@ import { useMedicalRecordsStore, type MedicalRecord, type CreateMedicalRecordReq
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import { Loader2, AlertCircle, QrCode } from 'lucide-vue-next'
+import QRPreviewModal from '@/components/QRPreviewModal.vue'
+import { useQRCodesStore } from '@/stores/qrcodes'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const petsStore = usePetsStore()
 const recordsStore = useMedicalRecordsStore()
+const qrStore = useQRCodesStore()
 
 const id = route.params.id as string
 
@@ -148,6 +154,7 @@ const isVet = computed(() => userStore.isVeterinarian)
 const showAdd = ref(false)
 const editing = ref<MedicalRecord | null>(null)
 const medicationsText = ref('')
+const showQRModal = ref(false)
 
 const form = ref<CreateMedicalRecordRequest | UpdateMedicalRecordRequest>({
   date_of_visit: '',
@@ -274,6 +281,16 @@ const goBack = () => {
 onMounted(async () => {
   await initialize()
 })
+
+/** Open QR modal (ensure QR exists) */
+const openQRModal = async () => {
+  try {
+    await qrStore.getOrCreateForPet(id)
+    showQRModal.value = true
+  } catch (e) {
+    console.error('Failed to load QR', e)
+  }
+}
 </script>
 
 <style scoped>

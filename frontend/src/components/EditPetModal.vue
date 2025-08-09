@@ -67,8 +67,8 @@
           <Label for="weight">Weight (kg)</Label>
           <Input
             id="weight"
-            :model-value="form.weight.toString()"
-            @update:model-value="(value) => form.weight = parseFloat(value) || 0"
+            :model-value="String(form.weight ?? 0)"
+            @update:model-value="(value) => (form.weight = (parseFloat(value) || 0))"
             type="number"
             step="0.1"
             min="0"
@@ -177,7 +177,7 @@ const handleSubmit = async () => {
     // Convert date string to RFC3339 format for backend
     const petData: UpdatePetRequest = {
       ...form,
-      date_of_birth: new Date(form.date_of_birth).toISOString()
+      date_of_birth: form.date_of_birth ? new Date(form.date_of_birth).toISOString() : undefined
     }
     
     await petsStore.updatePet(props.pet.id, petData)

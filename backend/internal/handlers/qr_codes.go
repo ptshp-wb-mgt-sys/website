@@ -82,9 +82,9 @@ func (h *QRCodeHandler) GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 		PublicProfileURL: publicURL,
 	}
 
-	// Generate QR code image
-	qrData := fmt.Sprintf("%s%s", getBaseURL(r), publicURL)
-	qrCodeBytes, err := qrcode.Encode(qrData, qrcode.Medium, 256)
+	// Generate QR code image with plaintext payload
+	qrText := buildQRCodeText(pet, owner, getBaseURL(r), publicURL)
+	qrCodeBytes, err := qrcode.Encode(qrText, qrcode.Medium, 256)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to generate QR code image")
 		return
@@ -293,4 +293,19 @@ func getBaseURL(r *http.Request) string {
 	}
 
 	return fmt.Sprintf("%s://%s", scheme, r.Host)
+}
+
+// buildQRCodeText builds the human-readable text embedded in the QR code.
+// It includes pet and owner info plus a tappable public profile link.
+func buildQRCodeText(pet *store.Pet, owner *store.Client, baseURL, publicURL string) string {
+	// Keep this simple and scanner-friendly. Newlines render as separate lines in most scanner apps.
+	profileLink := fmt.Sprintf("%s%s", baseURL, publicURL)
+	return fmt.Sprintf(
+		"Pet: %s\nOwner: %s\nPhone: %s\nAddress: %s\nProfile: %s",
+		pet.Name,
+		owner.Name,
+		owner.Phone,
+		owner.Address,
+		profileLink,
+	)
 }
