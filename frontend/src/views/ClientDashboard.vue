@@ -6,7 +6,7 @@
         <h1 class="text-3xl font-bold text-rich-black">My Pet Dashboard</h1>
         <p class="text-gray-600 mt-1">Manage your pets and appointments</p>
       </div>
-      <Button>
+      <Button @click="openAddPetModal">
         <Plus class="w-4 h-4 mr-2" />
         Add New Pet
       </Button>
@@ -168,7 +168,7 @@
             <Calendar class="w-6 h-6 mb-2" />
             <span class="text-sm">Book Appointment</span>
           </Button>
-          <Button variant="outline" class="flex flex-col items-center p-4 h-auto">
+          <Button variant="outline" class="flex flex-col items-center p-4 h-auto" @click="openAddPetModal">
             <Plus class="w-6 h-6 mb-2" />
             <span class="text-sm">Add Pet</span>
           </Button>
@@ -182,12 +182,44 @@
           </Button>
         </div>
       </Card>
+      <!-- Add Pet Modal -->
+      <AddPetModal
+        :is-open="showAddPetModal"
+        @close="closeAddPetModal"
+        @pet-added="handlePetAdded"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Plus, Heart, Calendar, FileText, ShoppingBag, QrCode } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import AddPetModal from '@/components/AddPetModal.vue'
+
+// Modal state
+const showAddPetModal = ref(false)
+
+/**
+ * Open the add-pet modal; simple toggle.
+ */
+const openAddPetModal = () => {
+  showAddPetModal.value = true
+}
+
+/**
+ * Close the add-pet modal.
+ */
+const closeAddPetModal = () => {
+  showAddPetModal.value = false
+}
+
+/**
+ * When a pet is added successfully, close the modal.
+ */
+const handlePetAdded = () => {
+  closeAddPetModal()
+}
 </script>

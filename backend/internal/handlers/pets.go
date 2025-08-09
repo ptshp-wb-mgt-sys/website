@@ -163,7 +163,7 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	pet.Name = req.Name
 	pet.Type = req.Type
 	pet.Breed = req.Breed
-	pet.DateOfBirth = req.DateOfBirth
+	pet.DateOfBirth = req.DateOfBirth.Format("2006-01-02")
 	pet.Weight = req.Weight
 	pet.UpdatedAt = time.Now()
 

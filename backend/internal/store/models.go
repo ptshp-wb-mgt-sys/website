@@ -136,7 +136,7 @@ type Pet struct {
 	Name        string    `json:"name"          db:"name"`
 	Type        string    `json:"type"          db:"type"`
 	Breed       string    `json:"breed"         db:"breed"`
-	DateOfBirth time.Time `json:"date_of_birth" db:"date_of_birth"`
+	DateOfBirth string    `json:"date_of_birth" db:"date_of_birth"`
 	Weight      float64   `json:"weight"        db:"weight"`
 	CreatedAt   time.Time `json:"created_at"    db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"    db:"updated_at"`
@@ -295,7 +295,7 @@ func NewPet(
 		Name:        name,
 		Type:        petType,
 		Breed:       breed,
-		DateOfBirth: dateOfBirth,
+		DateOfBirth: dateOfBirth.Format("2006-01-02"),
 		Weight:      weight,
 		CreatedAt:   now,
 		UpdatedAt:   now,

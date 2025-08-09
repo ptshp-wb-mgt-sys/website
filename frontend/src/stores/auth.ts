@@ -29,6 +29,13 @@ export const useAuthStore = defineStore('auth', () => {
           const { useUserStore } = await import('./user')
           const userStore = useUserStore()
           await userStore.initialize()
+          
+          // Initialize pets store for clients
+          if (userStore.isClient) {
+            const { usePetsStore } = await import('./pets')
+            const petsStore = usePetsStore()
+            await petsStore.initialize()
+          }
         }
         
         // Clear profile when signed out
@@ -36,6 +43,11 @@ export const useAuthStore = defineStore('auth', () => {
           const { useUserStore } = await import('./user')
           const userStore = useUserStore()
           userStore.clearProfile()
+          
+          // Clear pets store
+          const { usePetsStore } = await import('./pets')
+          const petsStore = usePetsStore()
+          petsStore.clearPets()
         }
       })
     } catch (error) {
