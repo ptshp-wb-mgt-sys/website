@@ -76,6 +76,17 @@
             </div>
             
             <div>
+              <Label for="email">Email</Label>
+              <Input
+                id="email"
+                v-model="editForm.email"
+                type="email"
+                required
+                class="mt-1"
+              />
+            </div>
+
+            <div>
               <Label for="phone">Phone Number</Label>
               <Input
                 id="phone"
@@ -131,6 +142,7 @@ const error = ref('')
 
 const editForm = ref({
   name: '',
+  email: '',
   phone: '',
   address: '',
   clinic_address: ''
@@ -143,6 +155,7 @@ const initEditForm = () => {
   if (userStore.profile) {
     editForm.value = {
       name: userStore.profile.name || '',
+      email: userStore.profile.email || '',
       phone: userStore.profile.phone || '',
       address: userStore.profile.address || '',
       clinic_address: (userStore.profile as any).clinic_address || ''
@@ -179,6 +192,7 @@ const saveProfile = async () => {
   try {
     const updates: any = {
       name: editForm.value.name,
+      email: editForm.value.email,
       phone: editForm.value.phone
     }
 

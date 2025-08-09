@@ -45,7 +45,7 @@
           </div>
           <div class="flex-1">
             <p class="text-sm font-medium text-gray-600">Medical Records</p>
-            <p class="text-2xl font-bold text-rich-black">12</p>
+            <p class="text-2xl font-bold text-rich-black">{{ recordsCount }}</p>
           </div>
         </div>
       </Card>
@@ -67,7 +67,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- My Pets -->
       <Card class="p-6">
-        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-rich-black">My Pets</h2>
           <Button variant="ghost" size="sm" @click="goToMyPets">View All</Button>
         </div>
@@ -86,7 +86,7 @@
               <Button variant="ghost" size="sm" @click="goToQr(pet.id)">
                 <QrCode class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" @click="goToMyPets">View</Button>
+              <Button variant="ghost" size="sm" @click="goToPetProfile(pet.id)">View</Button>
             </div>
           </div>
           <div v-if="myPetsPreview.length === 0" class="text-sm text-gray-600">No pets yet.</div>
@@ -97,7 +97,7 @@
       <Card class="p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-rich-black">Upcoming Appointments</h2>
-          <Button variant="ghost" size="sm">Book New</Button>
+          <Button variant="ghost" size="sm" @click="goToAppointments">Book New</Button>
         </div>
         <div class="space-y-3">
           <div v-for="appt in upcomingPreview" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -116,25 +116,22 @@
       <Card class="p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-rich-black">Recent Medical Records</h2>
-          <Button variant="ghost" size="sm">View All</Button>
+          <Button variant="ghost" size="sm" @click="goToMyPets">View All</Button>
         </div>
         <div class="space-y-3">
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div
+            v-for="rec in recentRecords.slice(0, 2)"
+            :key="rec.id"
+            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+          >
             <div>
-              <p class="font-medium text-rich-black">Buddy - Routine Checkup</p>
-              <p class="text-sm text-gray-600">Dr. Smith • 3 days ago</p>
-              <p class="text-xs text-green-600">All healthy ✓</p>
+              <p class="font-medium text-rich-black">{{ petNameById[rec.pet_id] || 'Pet' }} — {{ rec.reason_for_visit }}</p>
+              <p class="text-sm text-gray-600">{{ formatDate(rec.date_of_visit) }}</p>
+              <p v-if="rec.diagnosis" class="text-xs text-gray-600">{{ rec.diagnosis }}</p>
             </div>
-            <Button variant="ghost" size="sm">View</Button>
+            <Button variant="ghost" size="sm" @click="goToPetProfile(rec.pet_id)">View</Button>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <p class="font-medium text-rich-black">Luna - Vaccination</p>
-              <p class="text-sm text-gray-600">Dr. Johnson • 1 week ago</p>
-              <p class="text-xs text-blue-600">Vaccinated</p>
-            </div>
-            <Button variant="ghost" size="sm">View</Button>
-          </div>
+          <div v-if="recentRecords.length === 0" class="text-sm text-gray-600">No records yet.</div>
         </div>
       </Card>
 
@@ -179,6 +176,7 @@ import AddPetModal from '@/components/AddPetModal.vue'
 import { useRouter } from 'vue-router'
 import { usePetsStore } from '@/stores/pets'
 import { useAppointmentsStore, type Appointment } from '@/stores/appointments'
+import { useMedicalRecordsStore, type MedicalRecord } from '@/stores/medicalRecords'
 
 // Modal state
 const showAddPetModal = ref(false)
@@ -208,6 +206,7 @@ const handlePetAdded = () => {
 const petsStore = usePetsStore()
 const appointmentsStore = useAppointmentsStore()
 const router = useRouter()
+const recordsStore = useMedicalRecordsStore()
 
 /**
  * Number of pets for stats card.
@@ -229,6 +228,27 @@ const upcomingCount = computed(() => appointmentsStore.upcomingAppointments.leng
  */
 const upcomingPreview = computed(() => appointmentsStore.upcomingAppointments.slice(0, 2))
 
+// Recent medical records across user's pets
+const recentRecords = computed<MedicalRecord[]>(() => {
+  const loaded: MedicalRecord[] = []
+  for (const pet of petsStore.pets) {
+    const bucket = recordsStore.getCachedForPet(pet.id)
+    if (bucket && bucket.length) loaded.push(...bucket)
+  }
+  return loaded
+    .sort((a, b) => new Date(b.date_of_visit).getTime() - new Date(a.date_of_visit).getTime())
+})
+
+// Count for stats card
+const recordsCount = computed(() => recentRecords.value.length)
+
+// Quick lookup of pet names by id
+const petNameById = computed<Record<string, string>>(() => {
+  const map: Record<string, string> = {}
+  for (const p of petsStore.pets) map[p.id] = p.name
+  return map
+})
+
 /**
  * On mount, ensure data is loaded.
  */
@@ -239,6 +259,8 @@ onMounted(async () => {
   if (appointmentsStore.appointments.length === 0) {
     await appointmentsStore.fetchAppointments()
   }
+  // Preload medical records for each pet (best-effort)
+  await Promise.all(petsStore.pets.map(p => recordsStore.fetchByPetId(p.id)))
 })
 
 /**
@@ -272,5 +294,9 @@ const goToMyPets = () => router.push({ name: 'my-pets' })
 const goToAppointments = () => router.push({ name: 'book-appointment' })
 const goToQr = (petId: string) => router.push({ name: 'my-pets' })
 const goToProducts = () => router.push({ name: 'browse-products' })
+const goToPetProfile = (petId: string) => router.push({ name: 'pet-profile', params: { id: petId } })
+
+// Small utils
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString()
 </script>
 

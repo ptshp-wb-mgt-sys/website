@@ -75,6 +75,7 @@
                 </div>
                 <div class="flex space-x-2">
                   <Button variant="outline" size="sm">Reschedule</Button>
+                  <Button variant="outline" size="sm" @click="$router.push({ name: 'pet-profile', params: { id: appt.pet_id } })">View Records</Button>
                   <Button variant="ghost" size="sm" class="text-red-600">Cancel</Button>
                 </div>
               </div>

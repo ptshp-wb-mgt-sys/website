@@ -48,6 +48,12 @@ const router = createRouter({
       meta: { requiresAuth: true, allowedRoles: ['client'] },
     },
     {
+      path: '/pet/:id',
+      name: 'pet-profile',
+      component: () => import('../views/PetProfileView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['client', 'veterinarian'] },
+    },
+    {
       path: '/browse-products',
       name: 'browse-products',
       component: () => import('../views/ProductsView.vue'),

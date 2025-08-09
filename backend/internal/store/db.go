@@ -193,20 +193,14 @@ func (s *SupabaseService) GetPetsByUserID(
 ) ([]Pet, error) {
 	var pets []Pet
 
-	// Add debugging
-	fmt.Printf("Fetching pets for user ID: %s\n", userID)
-
 	_, err := s.client.From("pets").
 		Select("*", "", false).
 		Eq("owner_id", userID).
 		ExecuteTo(&pets)
-
 	if err != nil {
-		fmt.Printf("Error fetching pets: %v\n", err)
 		return nil, err
 	}
 
-	fmt.Printf("Successfully fetched %d pets\n", len(pets))
 	return pets, err
 }
 

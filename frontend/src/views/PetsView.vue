@@ -58,7 +58,12 @@
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <!-- Client's Own Pets -->
       <template v-if="userStore.isClient">
-        <Card v-for="pet in petsStore.pets" :key="pet.id" class="p-6">
+        <Card 
+          v-for="pet in petsStore.pets" 
+          :key="pet.id" 
+          class="p-6 cursor-pointer hover:shadow-md transition"
+          @click="$router.push({ name: 'pet-profile', params: { id: pet.id } })"
+        >
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-semibold text-rich-black">{{ pet.name }}</h3>
@@ -73,10 +78,14 @@
               <p><span class="font-medium">Weight:</span> {{ pet.weight }} kg</p>
             </div>
             
-            <div class="flex space-x-2">
-              <Button variant="outline" size="sm" class="flex-1">
+            <div class="flex space-x-2" @click.stop>
+              <Button variant="outline" size="sm" class="flex-1" @click="$router.push({ name: 'pet-profile', params: { id: pet.id } })">
                 <QrCode class="w-4 h-4 mr-1" />
                 QR Code
+              </Button>
+              <Button variant="outline" size="sm" class="flex-1" @click="$router.push({ name: 'pet-profile', params: { id: pet.id } })">
+                <FileText class="w-4 h-4 mr-1" />
+                Profile
               </Button>
               <Button variant="ghost" size="sm" class="flex-1" @click="openEditPetModal(pet)">Edit</Button>
               <Button 

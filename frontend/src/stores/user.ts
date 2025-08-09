@@ -165,8 +165,9 @@ export const useUserStore = defineStore('user', () => {
       }
 
       const data = await response.json()
-      profile.value = data
-      return data
+      const created = data.data || data
+      profile.value = created
+      return created
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to create profile'
       throw err
@@ -202,8 +203,9 @@ export const useUserStore = defineStore('user', () => {
       }
 
       const data = await response.json()
-      profile.value = data
-      return data
+      const updated = data.data || data
+      profile.value = updated
+      return updated
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update profile'
       throw err
