@@ -7,120 +7,118 @@
             PetCare
           </RouterLink>
         </div>
-        
+
         <!-- Authenticated Navigation -->
         <div v-if="authStore.isAuthenticated" class="flex items-center space-x-8">
-          <RouterLink 
-            to="/dashboard" 
-            class="text-gray-700 hover:text-aquamarine transition-colors"
+          <RouterLink
+            to="/dashboard"
+            class="text-black hover:text-aquamarine transition-colors"
             :class="{ 'text-aquamarine': $route.name === 'dashboard' }"
           >
             Dashboard
           </RouterLink>
-          
+
           <!-- Client Navigation -->
           <template v-if="userStore.isClient">
-            <RouterLink 
-              to="/my-pets" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/my-pets"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'my-pets' }"
             >
               My Pets
             </RouterLink>
-            <RouterLink 
-              to="/book-appointment" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/book-appointment"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'book-appointment' }"
             >
               Book Appointment
             </RouterLink>
-            <RouterLink 
-              to="/browse-products" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/browse-products"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'browse-products' }"
             >
               Browse Products
             </RouterLink>
           </template>
-          
+
           <!-- Veterinarian Navigation -->
           <template v-if="userStore.isVeterinarian">
-            <RouterLink 
-              to="/my-schedule" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/my-schedule"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'my-schedule' }"
             >
               My Schedule
             </RouterLink>
-            <RouterLink 
-              to="/patients" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/patients"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'patients' }"
             >
               Patients
             </RouterLink>
-            <RouterLink 
-              to="/manage-products" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/manage-products"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'manage-products' }"
             >
               Manage Products
             </RouterLink>
-            <RouterLink 
-              to="/medical-records" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/medical-records"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'medical-records' }"
             >
               Medical Records
             </RouterLink>
           </template>
-          
+
           <!-- Admin Navigation -->
           <template v-if="userStore.isAdmin">
-            <RouterLink 
-              to="/users" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/users"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'users' }"
             >
               Users
             </RouterLink>
-            <RouterLink 
-              to="/all-pets" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/all-pets"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'all-pets' }"
             >
               All Pets
             </RouterLink>
-            <RouterLink 
-              to="/all-appointments" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/all-appointments"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'all-appointments' }"
             >
               All Appointments
             </RouterLink>
-            <RouterLink 
-              to="/analytics" 
-              class="text-gray-700 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/analytics"
+              class="text-black hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'analytics' }"
             >
               Analytics
             </RouterLink>
           </template>
-          
+
           <!-- User Menu -->
           <div class="flex items-center space-x-4">
-            <RouterLink 
-              to="/profile" 
-              class="text-sm text-gray-600 hover:text-aquamarine transition-colors"
+            <RouterLink
+              to="/profile"
+              class="text-sm text-gray-400 hover:text-aquamarine transition-colors"
               :class="{ 'text-aquamarine': $route.name === 'profile' }"
             >
               <span v-if="userStore.hasProfile">{{ userStore.fullDisplayName }}</span>
               <span v-else-if="authStore.user?.email">{{ authStore.user.email }}</span>
               <span v-else>User</span>
             </RouterLink>
-            <Button variant="ghost" size="sm" @click="handleSignOut">
-              Sign out
-            </Button>
+            <Button variant="ghost" size="sm" @click="handleSignOut"> Sign out </Button>
           </div>
         </div>
 
@@ -162,11 +160,14 @@ onMounted(async () => {
 /**
  * Watch for auth state changes
  */
-watch(() => authStore.isAuthenticated, async (isAuth) => {
-  if (isAuth && !userStore.hasProfile) {
-    await userStore.fetchProfile()
-  }
-})
+watch(
+  () => authStore.isAuthenticated,
+  async (isAuth) => {
+    if (isAuth && !userStore.hasProfile) {
+      await userStore.fetchProfile()
+    }
+  },
+)
 
 /**
  * Handle user sign out
@@ -175,4 +176,4 @@ const handleSignOut = async () => {
   await authStore.signOut()
   router.push('/login')
 }
-</script> 
+</script>

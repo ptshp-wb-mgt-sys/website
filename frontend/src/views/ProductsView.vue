@@ -11,7 +11,7 @@
 
     <!-- Product Categories -->
     <div class="flex space-x-4 mb-6">
-      <Button variant="ghost" size="sm" class="text-aquamarine">All</Button>
+      <Button variant="ghost" size="sm">All</Button>
       <Button variant="ghost" size="sm">Food</Button>
       <Button variant="ghost" size="sm">Medicine</Button>
       <Button variant="ghost" size="sm">Accessories</Button>
@@ -23,7 +23,7 @@
       <Card class="p-6">
         <div class="space-y-4">
           <div class="aspect-square bg-gray-100 rounded-lg mb-4"></div>
-          
+
           <div class="space-y-2">
             <h3 class="font-semibold text-rich-black">Premium Dog Food</h3>
             <p class="text-sm text-gray-600">High-quality nutrition for adult dogs</p>
@@ -32,7 +32,7 @@
               <span class="text-sm text-gray-500">In Stock</span>
             </div>
           </div>
-          
+
           <div class="flex space-x-2">
             <Button size="sm" class="flex-1">Add to Cart</Button>
             <Button variant="outline" size="sm">Details</Button>
@@ -43,7 +43,7 @@
       <Card class="p-6">
         <div class="space-y-4">
           <div class="aspect-square bg-gray-100 rounded-lg mb-4"></div>
-          
+
           <div class="space-y-2">
             <h3 class="font-semibold text-rich-black">Flea & Tick Treatment</h3>
             <p class="text-sm text-gray-600">Monthly protection for dogs and cats</p>
@@ -52,7 +52,7 @@
               <span class="text-sm text-gray-500">In Stock</span>
             </div>
           </div>
-          
+
           <div class="flex space-x-2">
             <Button size="sm" class="flex-1">Add to Cart</Button>
             <Button variant="outline" size="sm">Details</Button>
@@ -63,7 +63,7 @@
       <Card class="p-6">
         <div class="space-y-4">
           <div class="aspect-square bg-gray-100 rounded-lg mb-4"></div>
-          
+
           <div class="space-y-2">
             <h3 class="font-semibold text-rich-black">Interactive Cat Toy</h3>
             <p class="text-sm text-gray-600">Keep your cat entertained and active</p>
@@ -72,7 +72,7 @@
               <span class="text-sm text-gray-500">In Stock</span>
             </div>
           </div>
-          
+
           <div class="flex space-x-2">
             <Button size="sm" class="flex-1">Add to Cart</Button>
             <Button variant="outline" size="sm">Details</Button>
@@ -83,7 +83,7 @@
       <Card class="p-6">
         <div class="space-y-4">
           <div class="aspect-square bg-gray-100 rounded-lg mb-4"></div>
-          
+
           <div class="space-y-2">
             <h3 class="font-semibold text-rich-black">Dog Leash & Collar Set</h3>
             <p class="text-sm text-gray-600">Durable and comfortable walking gear</p>
@@ -92,7 +92,7 @@
               <span class="text-sm text-gray-500">In Stock</span>
             </div>
           </div>
-          
+
           <div class="flex space-x-2">
             <Button size="sm" class="flex-1">Add to Cart</Button>
             <Button variant="outline" size="sm">Details</Button>
@@ -103,7 +103,7 @@
       <Card class="p-6">
         <div class="space-y-4">
           <div class="aspect-square bg-gray-100 rounded-lg mb-4"></div>
-          
+
           <div class="space-y-2">
             <h3 class="font-semibold text-rich-black">Pet Vitamins</h3>
             <p class="text-sm text-gray-600">Daily supplements for optimal health</p>
@@ -112,7 +112,7 @@
               <span class="text-sm text-orange-500">Low Stock</span>
             </div>
           </div>
-          
+
           <div class="flex space-x-2">
             <Button size="sm" class="flex-1">Add to Cart</Button>
             <Button variant="outline" size="sm">Details</Button>
@@ -123,7 +123,7 @@
       <Card class="p-6">
         <div class="space-y-4">
           <div class="aspect-square bg-gray-100 rounded-lg mb-4"></div>
-          
+
           <div class="space-y-2">
             <h3 class="font-semibold text-rich-black">Pet Carrier</h3>
             <p class="text-sm text-gray-600">Safe and comfortable travel carrier</p>
@@ -132,7 +132,7 @@
               <span class="text-sm text-gray-500">In Stock</span>
             </div>
           </div>
-          
+
           <div class="flex space-x-2">
             <Button size="sm" class="flex-1">Add to Cart</Button>
             <Button variant="outline" size="sm">Details</Button>
@@ -153,4 +153,4 @@ const products = ref([])
 onMounted(() => {
   // keep placeholder rendering for now
 })
-</script> 
+</script>
