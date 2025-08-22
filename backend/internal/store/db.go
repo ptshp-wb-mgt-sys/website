@@ -418,15 +418,50 @@ func (s *SupabaseService) GetPublicPetProfile(
 	}
 
 	// Convert to public profile
+	// Fetch pet details
+	var pet Pet
+	_, err = s.client.From("pets").
+		Select("*", "", false).
+		Eq("id", qrCode.PetID).
+		Single().
+		ExecuteTo(&pet)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch medical records and project to public-friendly shape
+	var records []MedicalRecord
+	_, err = s.client.From("medical_records").
+		Select("*", "", false).
+		Eq("pet_id", qrCode.PetID).
+		ExecuteTo(&records)
+	if err != nil {
+		return nil, err
+	}
+	publicRecords := make([]PublicMedicalRecord, 0, len(records))
+	for _, r := range records {
+		publicRecords = append(publicRecords, PublicMedicalRecord{
+			DateOfVisit:          r.DateOfVisit.Format("2006-01-02"),
+			ReasonForVisit:       r.ReasonForVisit,
+			Diagnosis:            r.Diagnosis,
+			MedicationPrescribed: r.MedicationPrescribed,
+		})
+	}
+
+	// Build enriched public profile
 	profile := &PublicPetProfile{
 		PetName:          qrCode.EncodedContent.PetName,
 		PetType:          qrCode.EncodedContent.PetType,
+		Breed:            pet.Breed,
+		DateOfBirth:      pet.DateOfBirth,
+		Weight:           pet.Weight,
 		OwnerName:        qrCode.EncodedContent.OwnerName,
 		OwnerPhone:       qrCode.EncodedContent.OwnerPhone,
 		OwnerEmail:       qrCode.EncodedContent.OwnerEmail,
 		OwnerAddress:     qrCode.EncodedContent.OwnerAddress,
 		EmergencyContact: qrCode.EncodedContent.EmergencyContact,
 		MedicalAlerts:    qrCode.EncodedContent.MedicalAlerts,
+		MedicalRecords:   publicRecords,
 	}
 
 	return profile, nil

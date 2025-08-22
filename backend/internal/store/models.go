@@ -183,14 +183,26 @@ type EncodedContent struct {
 
 // PublicPetProfile represents a public pet profile accessible via QR code
 type PublicPetProfile struct {
-	PetName          string   `json:"pet_name"`
-	PetType          string   `json:"pet_type"`
-	OwnerName        string   `json:"owner_name"`
-	OwnerPhone       string   `json:"owner_phone"`
-	OwnerEmail       string   `json:"owner_email"`
-	OwnerAddress     string   `json:"owner_address"`
-	EmergencyContact string   `json:"emergency_contact,omitempty"`
-	MedicalAlerts    []string `json:"medical_alerts,omitempty"`
+	PetName          string                `json:"pet_name"`
+	PetType          string                `json:"pet_type"`
+	Breed            string                `json:"breed,omitempty"`
+	DateOfBirth      string                `json:"date_of_birth,omitempty"`
+	Weight           float64               `json:"weight,omitempty"`
+	OwnerName        string                `json:"owner_name"`
+	OwnerPhone       string                `json:"owner_phone"`
+	OwnerEmail       string                `json:"owner_email"`
+	OwnerAddress     string                `json:"owner_address"`
+	EmergencyContact string                `json:"emergency_contact,omitempty"`
+	MedicalAlerts    []string              `json:"medical_alerts,omitempty"`
+	MedicalRecords   []PublicMedicalRecord `json:"medical_records,omitempty"`
+}
+
+// PublicMedicalRecord is a trimmed record suitable for public sharing
+type PublicMedicalRecord struct {
+	DateOfVisit          string   `json:"date_of_visit"`
+	ReasonForVisit       string   `json:"reason_for_visit"`
+	Diagnosis            string   `json:"diagnosis,omitempty"`
+	MedicationPrescribed []string `json:"medication_prescribed,omitempty"`
 }
 
 // Appointment represents a scheduled appointment

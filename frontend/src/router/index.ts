@@ -12,6 +12,11 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: '/public/pets/:publicUrl',
+      name: 'public-pet-profile',
+      component: () => import('../views/PublicPetProfileView.vue'),
+    },
+    {
       path: '/signup',
       name: 'signup',
       component: () => import('../views/auth/SignupView.vue'),

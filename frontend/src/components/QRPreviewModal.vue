@@ -19,8 +19,12 @@
         <div class="flex flex-col items-center">
           <img :src="qrSrc" alt="QR Code" class="w-56 h-56" />
           <p class="text-sm text-gray-600 mt-3 whitespace-pre-line text-center">
-            {{ previewText }}
+            {{ previewTextNoLink }}
           </p>
+          <div v-if="profileUrl" class="text-sm text-gray-600 text-center">
+            <span class="font-medium">Profile:</span>
+            <a :href="profileUrl" target="_blank" rel="noopener noreferrer" class="text-aquamarine hover:underline break-all ml-1">{{ profileUrl }}</a>
+          </div>
         </div>
 
         <div class="flex items-center gap-2 pt-2">
@@ -56,10 +60,17 @@ const record = computed(() => qr.cacheByPetId[props.petId])
 const qrSrc = computed(() => record.value ? qr.toImageSrc(record.value.qr_code_data) : '')
 
 // Build a human-friendly preview from encoded content
-const previewText = computed(() => {
+const previewTextNoLink = computed(() => {
   const c = record.value?.encoded_content
   if (!c) return ''
-  return `Pet: ${c.pet_name}\nOwner: ${c.owner_name}\nPhone: ${c.owner_phone}\nAddress: ${c.owner_address}\nProfile: ${window.location.origin}${c.public_profile_url}`
+  return `Pet: ${c.pet_name}\nOwner: ${c.owner_name}\nPhone: ${c.owner_phone}\nAddress: ${c.owner_address}`
+})
+
+// Extract profile link for clickable anchor
+const profileUrl = computed(() => {
+  const c = record.value?.encoded_content
+  if (!c) return ''
+  return `${window.location.origin}${c.public_profile_url}`
 })
 
 /**
@@ -81,7 +92,9 @@ const downloadPng = () => {
  */
 const copyText = async () => {
   try {
-    await navigator.clipboard.writeText(previewText.value)
+    // Include the profile link in the copied text for convenience
+    const text = `${previewTextNoLink.value}\nProfile: ${profileUrl.value}`
+    await navigator.clipboard.writeText(text)
   } catch (e) {
     console.error('Copy failed', e)
   }

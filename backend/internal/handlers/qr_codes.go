@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"pet-mgt/backend/internal/middleware"
 	"pet-mgt/backend/internal/store"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -151,13 +152,14 @@ func (h *QRCodeHandler) GetPublicPetProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Add leading slash if not present
-	if publicURL[0] != '/' {
-		publicURL = "/" + publicURL
+	// Keep it simple: take last segment as token and map to stored form
+	token := publicURL
+	if i := strings.LastIndex(token, "/"); i != -1 {
+		token = token[i+1:]
 	}
+	normalized := "/public/pets/" + token
 
-	// Get public pet profile
-	profile, err := h.db.GetPublicPetProfile(r.Context(), publicURL)
+	profile, err := h.db.GetPublicPetProfile(r.Context(), normalized)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Pet profile not found")
 		return

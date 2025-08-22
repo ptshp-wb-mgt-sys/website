@@ -37,8 +37,10 @@
             <p><span class="font-medium">DOB:</span> {{ pet?.date_of_birth }}</p>
             <p><span class="font-medium">Weight:</span> {{ pet?.weight }} kg</p>
           </div>
-          <div class="pt-3 border-t">
+          <div class="pt-3 border-t flex items-center gap-2">
             <Button variant="outline" size="sm" @click="openQRModal"><QrCode class="w-4 h-4 mr-1" /> QR Code</Button>
+            <Button variant="ghost" size="sm" @click="goToPublic">Public Profile</Button>
+            <Button v-if="isClient" variant="ghost" size="sm" @click="openEdit">Edit</Button>
           </div>
         </div>
       </Card>
@@ -115,6 +117,9 @@
 
   <!-- QR Preview Modal -->
   <QRPreviewModal :is-open="showQRModal" :pet-id="id" @close="() => (showQRModal = false)" />
+  
+  <!-- Edit Pet Modal -->
+  <EditPetModal :is-open="showEditPet" :pet="pet" @close="() => (showEditPet = false)" @pet-updated="initialize" />
 </template>
 
 <script setup lang="ts">
@@ -128,6 +133,7 @@ import Card from '@/components/ui/Card.vue'
 import { Loader2, AlertCircle, QrCode } from 'lucide-vue-next'
 import QRPreviewModal from '@/components/QRPreviewModal.vue'
 import { useQRCodesStore } from '@/stores/qrcodes'
+import EditPetModal from '@/components/EditPetModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -155,6 +161,7 @@ const showAdd = ref(false)
 const editing = ref<MedicalRecord | null>(null)
 const medicationsText = ref('')
 const showQRModal = ref(false)
+const showEditPet = ref(false)
 
 const form = ref<CreateMedicalRecordRequest | UpdateMedicalRecordRequest>({
   date_of_visit: '',
@@ -289,6 +296,27 @@ const openQRModal = async () => {
     showQRModal.value = true
   } catch (e) {
     console.error('Failed to load QR', e)
+  }
+}
+
+/** Open Edit Pet modal */
+const openEdit = () => {
+  showEditPet.value = true
+}
+
+/**
+ * Navigate to the public profile page (ensures a QR exists to get the URL).
+ */
+const goToPublic = async () => {
+  try {
+    const rec = await qrStore.getOrCreateForPet(id)
+    const url = rec.encoded_content?.public_profile_url
+    if (!url) return
+    // Extract token from stored public path and route within SPA
+    const token = url.split('/').pop() as string
+    router.push(`/public/pets/${token}`)
+  } catch (e) {
+    console.error('Failed to open public profile', e)
   }
 }
 </script>
