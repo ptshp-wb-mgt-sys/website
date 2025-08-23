@@ -287,6 +287,11 @@ const goBack = () => {
 
 onMounted(async () => {
   await initialize()
+  // If coming from dashboard quick action, open the add-record form right away
+  const action = (router.currentRoute.value.query?.action as string | undefined) || ''
+  if (action === 'new-record' && isVet.value) {
+    showAdd.value = true
+  }
 })
 
 /** Open QR modal (ensure QR exists) */

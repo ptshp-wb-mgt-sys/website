@@ -102,29 +102,24 @@
 
       <!-- Veterinarian's Patient View -->
       <template v-if="userStore.isVeterinarian">
-        <Card v-for="pet in allPets" :key="pet.id" class="p-6">
+        <Card v-for="pet in vetPets" :key="pet.id" class="p-6 cursor-pointer hover:shadow-md transition" @click="handleVetCardClick(pet.id)">
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-semibold text-rich-black">{{ pet.name }}</h3>
-              <span class="px-2 py-1 bg-aquamarine-100 text-aquamarine-800 text-xs rounded-full">
-                {{ pet.species }}
-              </span>
+              <span class="px-2 py-1 bg-aquamarine-100 text-aquamarine-800 text-xs rounded-full">{{ pet.type }}</span>
             </div>
             
             <div class="space-y-2 text-sm">
-              <p><span class="font-medium">Owner:</span> {{ pet.ownerName }}</p>
-              <p><span class="font-medium">Phone:</span> {{ pet.ownerPhone }}</p>
               <p><span class="font-medium">Breed:</span> {{ pet.breed }}</p>
-              <p><span class="font-medium">Age:</span> {{ pet.age }}</p>
-              <p><span class="font-medium">Last Visit:</span> {{ pet.lastVisit || 'Never' }}</p>
+              <p><span class="font-medium">Age:</span> {{ formatAge(pet.date_of_birth) }}</p>
             </div>
             
-            <div class="flex space-x-2">
-              <Button variant="outline" size="sm" class="flex-1">
+            <div class="flex space-x-2" @click.stop>
+              <Button variant="outline" size="sm" class="flex-1" @click="$router.push({ name: 'pet-profile', params: { id: pet.id }, query: newRecordQuery })">
                 <FileText class="w-4 h-4 mr-1" />
                 Records
               </Button>
-              <Button variant="ghost" size="sm" class="flex-1">
+              <Button variant="ghost" size="sm" class="flex-1" @click="openQRModal(pet.id)">
                 <QrCode class="w-4 h-4" />
               </Button>
             </div>
@@ -134,30 +129,26 @@
 
       <!-- Admin View -->
       <template v-if="userStore.isAdmin">
-        <Card v-for="pet in allPets" :key="pet.id" class="p-6">
+        <Card v-for="pet in vetPets" :key="pet.id" class="p-6">
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-semibold text-rich-black">{{ pet.name }}</h3>
-              <span class="px-2 py-1 bg-aquamarine-100 text-aquamarine-800 text-xs rounded-full">
-                {{ pet.species }}
-              </span>
+              <span class="px-2 py-1 bg-aquamarine-100 text-aquamarine-800 text-xs rounded-full">{{ pet.type }}</span>
             </div>
             
             <div class="space-y-2 text-sm">
-              <p><span class="font-medium">Owner:</span> {{ pet.ownerName }}</p>
-              <p><span class="font-medium">Email:</span> {{ pet.ownerEmail }}</p>
               <p><span class="font-medium">Breed:</span> {{ pet.breed }}</p>
-              <p><span class="font-medium">Age:</span> {{ pet.age }}</p>
-              <p><span class="font-medium">Created:</span> {{ pet.createdDate }}</p>
+              <p><span class="font-medium">Age:</span> {{ formatAge(pet.date_of_birth) }}</p>
+              <p><span class="font-medium">Created:</span> {{ (pet as any).created_at?.slice ? (pet as any).created_at.slice(0,10) : '' }}</p>
             </div>
             
             <div class="flex space-x-2">
-              <Button variant="outline" size="sm" class="flex-1">
+              <Button variant="outline" size="sm" class="flex-1" @click="$router.push({ name: 'pet-profile', params: { id: pet.id }, query: newRecordQuery })">
                 <FileText class="w-4 h-4 mr-1" />
                 View
               </Button>
-              <Button variant="ghost" size="sm" class="flex-1">Edit</Button>
-              <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700">
+              <Button variant="ghost" size="sm" class="flex-1" @click="openEditPetModal(pet as any)">Edit</Button>
+              <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700" @click="deletePet(pet.id)">
                 <Trash2 class="w-4 h-4" />
               </Button>
             </div>
@@ -199,6 +190,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { usePetsStore, type Pet } from '@/stores/pets'
 import { Plus, Search, QrCode, FileText, Heart, Trash2, Loader2, AlertCircle } from 'lucide-vue-next'
@@ -212,6 +204,8 @@ import { useQRCodesStore } from '@/stores/qrcodes'
 const userStore = useUserStore()
 const petsStore = usePetsStore()
 const qrStore = useQRCodesStore()
+const route = useRoute()
+const router = useRouter()
 
 // Modal state
 const showAddPetModal = ref(false)
@@ -339,62 +333,31 @@ onMounted(async () => {
     }
     await petsStore.fetchPets()
   }
+  if (userStore.isVeterinarian || userStore.isAdmin) {
+    await loadVetPatients()
+  }
 })
 
-const allPets = [
-  {
-    id: '1',
-    name: 'Buddy',
-    species: 'Dog',
-    breed: 'Golden Retriever',
-    age: '3 years',
-    weight: '30 kg',
-    ownerName: 'John Smith',
-    ownerPhone: '+1 (555) 123-4567',
-    ownerEmail: 'john@example.com',
-    lastVisit: '2 days ago',
-    createdDate: '2023-06-15'
-  },
-  {
-    id: '2',
-    name: 'Luna',
-    species: 'Cat',
-    breed: 'Persian Cat',
-    age: '2 years',
-    weight: '4 kg',
-    ownerName: 'John Smith',
-    ownerPhone: '+1 (555) 123-4567',
-    ownerEmail: 'john@example.com',
-    lastVisit: '2 days ago',
-    createdDate: '2023-06-15'
-  },
-  {
-    id: '3',
-    name: 'Max',
-    species: 'Dog',
-    breed: 'German Shepherd',
-    age: '5 years',
-    weight: '35 kg',
-    ownerName: 'Sarah Johnson',
-    ownerPhone: '+1 (555) 987-6543',
-    ownerEmail: 'sarah@example.com',
-    lastVisit: '1 week ago',
-    createdDate: '2023-05-20'
-  },
-  {
-    id: '4',
-    name: 'Whiskers',
-    species: 'Cat',
-    breed: 'Maine Coon',
-    age: '4 years',
-    weight: '6 kg',
-    ownerName: 'Mike Davis',
-    ownerPhone: '+1 (555) 456-7890',
-    ownerEmail: 'mike@example.com',
-    lastVisit: '3 days ago',
-    createdDate: '2023-07-01'
+import { useAppointmentsStore } from '@/stores/appointments'
+const apptStore = useAppointmentsStore()
+const vetPets = ref<Pet[]>([])
+
+/**
+ * Build a vet-facing patients list by hydrating unique pet ids
+ * from the vet's appointment history.
+ */
+const loadVetPatients = async () => {
+  await apptStore.fetchAppointments({ force: true })
+  const unique = Array.from(new Set(apptStore.appointments.map(a => a.pet_id)))
+  const loaded: Pet[] = []
+  for (const id of unique) {
+    try {
+      const p = await petsStore.getPet(id)
+      if (p) loaded.push(p)
+    } catch (_) {}
   }
-]
+  vetPets.value = loaded
+}
 
 /**
  * Computed properties for dynamic content
@@ -414,7 +377,7 @@ const pageSubtitle = computed(() => {
 })
 
 const totalPetsText = computed(() => {
-  const count = userStore.isClient ? petsStore.petsCount : allPets.length
+  const count = userStore.isClient ? petsStore.petsCount : vetPets.value.length
   const petWord = count === 1 ? 'pet' : 'pets'
   
   if (userStore.isClient) return `${count} ${petWord}`
@@ -425,8 +388,26 @@ const totalPetsText = computed(() => {
 
 const shouldShowEmptyState = computed(() => {
   if (userStore.isClient) return !petsStore.hasPets
-  return allPets.length === 0
+  return vetPets.value.length === 0
 })
+
+/**
+ * Determine if we are in the quick add-record flow (from dashboard).
+ */
+const isQuickNewRecord = computed(() => route.query.action === 'new-record')
+
+/**
+ * Provide query to propagate the new-record intent when navigating deeper.
+ */
+const newRecordQuery = computed(() => (isQuickNewRecord.value ? { action: 'new-record' } : {}))
+
+/**
+ * Navigate to a pet profile; preserve new-record intent if present.
+ */
+const handleVetCardClick = (petId: string) => {
+  const q = isQuickNewRecord.value ? { action: 'new-record' } : {}
+  router.push({ name: 'pet-profile', params: { id: petId }, query: q })
+}
 
 const emptyStateTitle = computed(() => {
   if (userStore.isClient) return 'No pets yet'
