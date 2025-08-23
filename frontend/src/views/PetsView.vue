@@ -21,13 +21,18 @@
             type="text"
             placeholder="Search pets..."
             class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-aquamarine focus:border-transparent"
+            v-model="searchQuery"
           />
         </div>
-        <select v-if="userStore.isVeterinarian || userStore.isAdmin" class="px-3 py-2 border border-gray-300 rounded-lg">
+        <select v-if="userStore.isVeterinarian || userStore.isAdmin" v-model="vetSpecies" class="px-3 py-2 border border-gray-300 rounded-lg">
           <option value="">All Species</option>
           <option value="dog">Dogs</option>
           <option value="cat">Cats</option>
           <option value="bird">Birds</option>
+          <option value="rabbit">Rabbits</option>
+          <option value="hamster">Hamsters</option>
+          <option value="fish">Fish</option>
+          <option value="other">Other</option>
         </select>
       </div>
       <div class="text-sm text-gray-600">
@@ -59,7 +64,7 @@
       <!-- Client's Own Pets -->
       <template v-if="userStore.isClient">
         <Card 
-          v-for="pet in petsStore.pets" 
+          v-for="pet in filteredClientPets" 
           :key="pet.id" 
           class="p-6 cursor-pointer hover:shadow-md transition"
           @click="$router.push({ name: 'pet-profile', params: { id: pet.id } })"
@@ -102,7 +107,7 @@
 
       <!-- Veterinarian's Patient View -->
       <template v-if="userStore.isVeterinarian">
-        <Card v-for="pet in vetPets" :key="pet.id" class="p-6 cursor-pointer hover:shadow-md transition" @click="handleVetCardClick(pet.id)">
+        <Card v-for="pet in filteredVetPets" :key="pet.id" class="p-6 cursor-pointer hover:shadow-md transition" @click="handleVetCardClick(pet.id)">
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-semibold text-rich-black">{{ pet.name }}</h3>
@@ -129,7 +134,7 @@
 
       <!-- Admin View -->
       <template v-if="userStore.isAdmin">
-        <Card v-for="pet in vetPets" :key="pet.id" class="p-6">
+        <Card v-for="pet in filteredVetPets" :key="pet.id" class="p-6">
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-semibold text-rich-black">{{ pet.name }}</h3>
@@ -208,6 +213,10 @@ const qrStore = useQRCodesStore()
 const apptStore = useAppointmentsStore()
 const route = useRoute()
 const router = useRouter()
+
+// Search/filter state
+const searchQuery = ref('')
+const vetSpecies = ref('')
 
 // Modal state
 const showAddPetModal = ref(false)
@@ -373,7 +382,7 @@ const pageSubtitle = computed(() => {
 })
 
 const totalPetsText = computed(() => {
-  const count = userStore.isClient ? petsStore.petsCount : vetPets.value.length
+  const count = userStore.isClient ? filteredClientPets.value.length : filteredVetPets.value.length
   const petWord = count === 1 ? 'pet' : 'pets'
   
   if (userStore.isClient) return `${count} ${petWord}`
@@ -383,8 +392,8 @@ const totalPetsText = computed(() => {
 })
 
 const shouldShowEmptyState = computed(() => {
-  if (userStore.isClient) return !petsStore.hasPets
-  return vetPets.value.length === 0
+  if (userStore.isClient) return filteredClientPets.value.length === 0
+  return filteredVetPets.value.length === 0
 })
 
 /**
@@ -417,5 +426,32 @@ const emptyStateMessage = computed(() => {
   if (userStore.isVeterinarian) return 'When pet owners register their pets, they will appear here.'
   if (userStore.isAdmin) return 'Pets will appear here as users register them in the system.'
   return 'Get started by adding a pet.'
+})
+
+/**
+ * Filter client's pets by search text (name, type, breed)
+ */
+const filteredClientPets = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return petsStore.pets
+  return petsStore.pets.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.type.toLowerCase().includes(q) ||
+    p.breed.toLowerCase().includes(q)
+  )
+})
+
+/**
+ * Filter vet/admin pets by search text + species dropdown
+ */
+const filteredVetPets = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  const species = vetSpecies.value
+  return vetPets.value.filter(p => {
+    const matchesSpecies = !species || p.type.toLowerCase() === species
+    if (!q) return matchesSpecies
+    const matchesText = p.name.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || p.breed.toLowerCase().includes(q)
+    return matchesSpecies && matchesText
+  })
 })
 </script> 
