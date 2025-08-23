@@ -121,7 +121,7 @@
             <div class="space-y-2 text-sm">
               <p><span class="font-medium">Breed:</span> {{ pet.breed }}</p>
               <p><span class="font-medium">Age:</span> {{ formatAge(pet.date_of_birth) }}</p>
-              <p><span class="font-medium">Owner:</span> {{ ownerNames[pet.owner_id] || '—' }}</p>
+              <p><span class="font-medium">Owner:</span> {{ ownerLabel(pet.owner_id) }}</p>
             </div>
             
             <div class="flex space-x-2" @click.stop>
@@ -224,7 +224,7 @@ const searchQuery = ref('')
 const vetSpecies = ref('')
 const vetOwnerId = ref('')
 
-// Owner name cache for vet cards
+// Owner name cache for vet cards (persisted in store; local is view-model only)
 const ownerNames = ref<Record<string, string>>({})
 const vetOwnerOptions = computed(() => {
   // Build owner options from currently known vet patients
@@ -271,26 +271,16 @@ const formatAge = (dateOfBirth: string) => {
  * Resolve and cache owner names for a list of user IDs.
  */
 const warmOwnerNames = async (ownerIds: string[]) => {
-  const unique = Array.from(new Set(ownerIds)).filter(id => !!id && !ownerNames.value[id])
-  if (unique.length === 0) return
-  await Promise.all(unique.map(async (id) => {
-    try {
-      const { useAuthStore } = await import('@/stores/auth')
-      const auth = useAuthStore()
-      const res = await fetch(`http://localhost:3000/api/v1/owners/${encodeURIComponent(id)}/label`, {
-        headers: {
-          'Authorization': `Bearer ${auth.session?.access_token || ''}`,
-          'Content-Type': 'application/json',
-        },
-      })
-      if (!res.ok) return
-      const body = await res.json()
-      const user = body.data || body
-      if (user && user.name) {
-        ownerNames.value[id] = user.name
-      }
-    } catch (_) {}
-  }))
+  await petsStore.warmOwnerNames(ownerIds)
+  // Sync local view-model map from store cache for quick access
+  ownerIds.forEach((id) => {
+    const name = petsStore.getOwnerNameSync(id)
+    if (name) ownerNames.value[id] = name
+  })
+}
+
+function ownerLabel(ownerId: string): string {
+  return petsStore.getOwnerNameSync(ownerId) || ownerNames.value[ownerId] || '—'
 }
 
 /**

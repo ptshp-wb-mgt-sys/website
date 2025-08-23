@@ -41,6 +41,8 @@ export const usePetsStore = defineStore('pets', () => {
   const petByIdCache = ref<Record<string, { pet: Pet; fetchedAt: number }>>({})
   const vetPatients = ref<Pet[]>([])
   const vetPatientsFetchedAt = ref<number | null>(null)
+  // Owner label cache to support vet views (owner names on patient cards)
+  const ownerNameById = ref<Record<string, { name: string; fetchedAt: number }>>({})
 
   const authStore = useAuthStore()
 
@@ -317,6 +319,44 @@ export const usePetsStore = defineStore('pets', () => {
   }
 
   /**
+   * Synchronously get an owner display name from cache.
+   */
+  const getOwnerNameSync = (ownerId: string): string => {
+    return ownerNameById.value[ownerId]?.name || ''
+  }
+
+  /**
+   * Warm owner names for the given ids using a small TTL cache.
+   */
+  const warmOwnerNames = async (ids: string[], options?: { ttlMs?: number }) => {
+    const ttlMs = options?.ttlMs ?? 5 * 60 * 1000
+    const pending = Array.from(new Set(ids)).filter((id) => {
+      if (!id) return false
+      const cached = ownerNameById.value[id]
+      return !cached || (Date.now() - cached.fetchedAt > ttlMs)
+    })
+    if (pending.length === 0) return
+    for (const id of pending) {
+      try {
+        const res = await fetch(`http://localhost:3000/api/v1/owners/${encodeURIComponent(id)}/label`, {
+          headers: {
+            'Authorization': authStore.session?.access_token ? `Bearer ${authStore.session.access_token}` : '',
+            'Content-Type': 'application/json',
+          },
+        })
+        if (!res.ok) continue
+        const body = await res.json().catch(() => ({}))
+        const data = (body.data || body) as { name?: string }
+        if (data?.name) {
+          ownerNameById.value[id] = { name: data.name, fetchedAt: Date.now() }
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+  }
+
+  /**
    * Clear pets data
    */
   const clearPets = () => {
@@ -326,6 +366,7 @@ export const usePetsStore = defineStore('pets', () => {
     petByIdCache.value = {}
     vetPatients.value = []
     vetPatientsFetchedAt.value = null
+    ownerNameById.value = {}
   }
 
   /**
@@ -345,6 +386,7 @@ export const usePetsStore = defineStore('pets', () => {
     lastFetchedAt,
     vetPatients,
     vetPatientsFetchedAt,
+    ownerNameById,
     
     // Computed
     petsCount,
@@ -358,6 +400,8 @@ export const usePetsStore = defineStore('pets', () => {
     getPet,
     getPetLabelSync,
     warmPetLabels,
+    getOwnerNameSync,
+    warmOwnerNames,
     loadVetPatients,
     clearPets,
     initialize
