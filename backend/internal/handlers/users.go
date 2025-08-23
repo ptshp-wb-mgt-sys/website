@@ -287,3 +287,38 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 	SuccessResponse(w, users)
 }
+
+// GetOwnerLabel returns a tiny public-ish slice of a client profile.
+// Vets and admins can hit this to show owner names on patient cards.
+func (h *UserHandler) GetOwnerLabel(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
+		return
+	}
+
+	ownerID := chi.URLParam(r, "id")
+	if ownerID == "" {
+		ErrorResponse(w, http.StatusBadRequest, "Owner ID is required")
+		return
+	}
+
+	// Clients can see their own label; vets/admins can see any client label
+	if user.Role == "client" && user.Sub != ownerID {
+		ErrorResponse(w, http.StatusForbidden, "Insufficient permissions")
+		return
+	}
+
+	client, err := h.db.GetClientByID(r.Context(), ownerID)
+	if err != nil || client == nil {
+		ErrorResponse(w, http.StatusNotFound, "Owner not found")
+		return
+	}
+
+	// Keep it minimal for this use case
+	JSONResponse(w, http.StatusOK, map[string]any{
+		"id":    client.ID,
+		"name":  client.Name,
+		"email": client.Email,
+	})
+}

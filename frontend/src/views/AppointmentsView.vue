@@ -188,7 +188,7 @@
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-rich-black">Edit Availability</h2>
           <div class="space-x-2">
-            <Button variant="outline" @click="addAvailabilityRow">Add Row</Button>
+            <Button variant="outline" @click="addAvailabilityRow">Add Schedule</Button>
             <Button @click="saveAvailability">Save</Button>
             <Button variant="ghost" @click="showAvailability = false">Close</Button>
           </div>

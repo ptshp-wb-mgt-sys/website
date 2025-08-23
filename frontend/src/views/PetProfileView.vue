@@ -36,6 +36,7 @@
             <p><span class="font-medium">Breed:</span> {{ pet?.breed }}</p>
             <p><span class="font-medium">DOB:</span> {{ pet?.date_of_birth }}</p>
             <p><span class="font-medium">Weight:</span> {{ pet?.weight }} kg</p>
+            <p><span class="font-medium">Owner:</span> {{ ownerName || '—' }}</p>
           </div>
           <div class="pt-3 border-t flex items-center gap-2">
             <Button variant="outline" size="sm" @click="openQRModal"><QrCode class="w-4 h-4 mr-1" /> QR Code</Button>
@@ -147,6 +148,7 @@ const id = route.params.id as string
 const pet = ref<Pet | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const ownerName = ref('')
 
 const recordsLoading = computed(() => recordsStore.loading)
 const records = computed<MedicalRecord[]>(() => recordsStore.getCachedForPet(id))
@@ -183,6 +185,7 @@ const initialize = async () => {
     }
     // Prefer cache, fallback to API
     pet.value = petsStore.pets.find(p => p.id === id) || (await petsStore.getPet(id))
+    try { await loadOwnerName(pet.value?.owner_id) } catch (_) {}
     await recordsStore.fetchByPetId(id)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load pet profile'
@@ -323,6 +326,27 @@ const goToPublic = async () => {
   } catch (e) {
     console.error('Failed to open public profile', e)
   }
+}
+
+/**
+ * Fetch and set the owner's display name by id.
+ */
+const loadOwnerName = async (ownerId?: string) => {
+  if (!ownerId) return
+  try {
+    const { useAuthStore } = await import('@/stores/auth')
+    const auth = useAuthStore()
+    const res = await fetch(`http://localhost:3000/api/v1/owners/${encodeURIComponent(ownerId)}/label`, {
+      headers: {
+        'Authorization': `Bearer ${auth.session?.access_token || ''}`,
+        'Content-Type': 'application/json',
+      },
+    })
+    if (!res.ok) return
+    const body = await res.json()
+    const user = body.data || body
+    ownerName.value = user?.name || ''
+  } catch (_) {}
 }
 </script>
 

@@ -24,7 +24,7 @@
             v-model="searchQuery"
           />
         </div>
-        <select v-if="userStore.isVeterinarian || userStore.isAdmin" v-model="vetSpecies" class="px-3 py-2 border border-gray-300 rounded-lg">
+        <select v-if="userStore.isVeterinarian || userStore.isAdmin" v-model="vetSpecies" class="px-3 py-2 border border-gray-300 rounded-lg w-48 md:w-56">
           <option value="">All Species</option>
           <option value="dog">Dogs</option>
           <option value="cat">Cats</option>
@@ -33,6 +33,10 @@
           <option value="hamster">Hamsters</option>
           <option value="fish">Fish</option>
           <option value="other">Other</option>
+        </select>
+        <select v-if="userStore.isVeterinarian || userStore.isAdmin" v-model="vetOwnerId" class="px-3 py-2 border border-gray-300 rounded-lg w-56 md:w-64">
+          <option value="">All Owners</option>
+          <option v-for="o in vetOwnerOptions" :key="o.id" :value="o.id">{{ o.name }}</option>
         </select>
       </div>
       <div class="text-sm text-gray-600">
@@ -117,6 +121,7 @@
             <div class="space-y-2 text-sm">
               <p><span class="font-medium">Breed:</span> {{ pet.breed }}</p>
               <p><span class="font-medium">Age:</span> {{ formatAge(pet.date_of_birth) }}</p>
+              <p><span class="font-medium">Owner:</span> {{ ownerNames[pet.owner_id] || '—' }}</p>
             </div>
             
             <div class="flex space-x-2" @click.stop>
@@ -217,6 +222,21 @@ const router = useRouter()
 // Search/filter state
 const searchQuery = ref('')
 const vetSpecies = ref('')
+const vetOwnerId = ref('')
+
+// Owner name cache for vet cards
+const ownerNames = ref<Record<string, string>>({})
+const vetOwnerOptions = computed(() => {
+  // Build owner options from currently known vet patients
+  const map = new Map<string, string>()
+  for (const p of vetPets.value) {
+    if (p.owner_id) {
+      const name = ownerNames.value[p.owner_id] || ''
+      if (name) map.set(p.owner_id, name)
+    }
+  }
+  return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+})
 
 // Modal state
 const showAddPetModal = ref(false)
@@ -245,6 +265,32 @@ const formatAge = (dateOfBirth: string) => {
   }
   
   return `${ageInYears} years`
+}
+
+/**
+ * Resolve and cache owner names for a list of user IDs.
+ */
+const warmOwnerNames = async (ownerIds: string[]) => {
+  const unique = Array.from(new Set(ownerIds)).filter(id => !!id && !ownerNames.value[id])
+  if (unique.length === 0) return
+  await Promise.all(unique.map(async (id) => {
+    try {
+      const { useAuthStore } = await import('@/stores/auth')
+      const auth = useAuthStore()
+      const res = await fetch(`http://localhost:3000/api/v1/owners/${encodeURIComponent(id)}/label`, {
+        headers: {
+          'Authorization': `Bearer ${auth.session?.access_token || ''}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (!res.ok) return
+      const body = await res.json()
+      const user = body.data || body
+      if (user && user.name) {
+        ownerNames.value[id] = user.name
+      }
+    } catch (_) {}
+  }))
 }
 
 /**
@@ -350,6 +396,10 @@ onMounted(async () => {
       await petsStore.loadVetPatients()
     }
     vetPets.value = petsStore.vetPatients
+    // Warm owner names for vet cards
+    try {
+      await warmOwnerNames(vetPets.value.map(p => p.owner_id))
+    } catch (_) {}
   }
 })
 
@@ -362,6 +412,9 @@ const vetPets = ref<Pet[]>([])
 const loadVetPatients = async () => {
   await petsStore.loadVetPatients()
   vetPets.value = petsStore.vetPatients
+  try {
+    await warmOwnerNames(vetPets.value.map(p => p.owner_id))
+  } catch (_) {}
 }
 
 /**
@@ -447,11 +500,13 @@ const filteredClientPets = computed(() => {
 const filteredVetPets = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   const species = vetSpecies.value
+  const ownerId = vetOwnerId.value
   return vetPets.value.filter(p => {
     const matchesSpecies = !species || p.type.toLowerCase() === species
-    if (!q) return matchesSpecies
+    const matchesOwner = !ownerId || p.owner_id === ownerId
+    if (!q) return matchesSpecies && matchesOwner
     const matchesText = p.name.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || p.breed.toLowerCase().includes(q)
-    return matchesSpecies && matchesText
+    return matchesSpecies && matchesOwner && matchesText
   })
 })
 </script> 
