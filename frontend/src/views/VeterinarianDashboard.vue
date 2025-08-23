@@ -6,10 +6,6 @@
         <h1 class="text-3xl font-bold text-rich-black">Veterinarian Dashboard</h1>
         <p class="text-gray-600 mt-1">Manage your practice and patients</p>
       </div>
-      <Button @click="goToNewRecord">
-        <Plus class="w-4 h-4 mr-2" />
-        New Medical Record
-      </Button>
     </div>
 
     <!-- Stats Cards -->
@@ -74,8 +70,8 @@
         <div class="space-y-3">
           <div v-if="todaysList.length === 0" class="text-sm text-gray-600">No appointments today.</div>
           <div v-for="appt in todaysList" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleTimeString() }} — {{ appt.reason }}</p>
+            <div class="space-y-1">
+              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} — {{ appt.reason }} • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></p>
               <p class="text-xs capitalize" :class="appt.status === 'confirmed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
             </div>
             <Button variant="ghost" size="sm" @click="goToPet(appt.pet_id)">Start Visit</Button>
@@ -199,12 +195,14 @@ const activePatientsCount = computed(() => {
 })
 const monthlyRevenue = computed(() => ordersStore.monthlyRevenue || 0)
 
-// Recent patients: last 2 completed appointments by pet
+// Recent patients: last 2 completed visits by distinct pet
 const recentPatients = computed(() => {
   const seen = new Set<string>()
   const out: Array<{ petId: string; name?: string; lastVisit: string }> = []
-  for (const a of apptStore.pastAppointments) {
-    if (a.status !== 'completed') continue
+  const past = [...apptStore.pastAppointments]
+    .filter(a => a.status === 'completed')
+    .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
+  for (const a of past) {
     if (seen.has(a.pet_id)) continue
     seen.add(a.pet_id)
     out.push({ petId: a.pet_id, name: undefined, lastVisit: new Date(a.appointment_date).toLocaleDateString() })
@@ -228,6 +226,12 @@ onMounted(async () => {
   rows.forEach(r => (r.name = map[r.productId]))
   topSales.value = rows.sort((a, b) => b.revenue - a.revenue).slice(0, 5)
 })
+
+// Helpers
+function petLabel(petId: string): string {
+  // Minimal label; dashboard doesn't have pet store here, so just show id tail as placeholder
+  return 'Pet ' + String(petId).slice(0, 4)
+}
 
 // Navigation helpers
 const goToNewRecord = () => {

@@ -91,8 +91,8 @@
             <Card v-for="appt in upcomingAppointments" :key="appt.id" class="p-6">
               <div class="flex items-center justify-between">
                 <div class="space-y-1">
-                  <h3 class="font-semibold text-rich-black">{{ appt.reason }}</h3>
-                  <p class="text-sm text-gray-600">{{ new Date(appt.appointment_date).toLocaleString() }}</p>
+                  <h3 class="font-semibold text-rich-black">{{ appt.reason }} • <span class="text-gray-600">{{ petLabel(appt.pet_id) }}</span></h3>
+                  <p class="text-sm text-gray-600">{{ new Date(appt.appointment_date).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }) }}</p>
                   <p class="text-xs" :class="appt.status === 'confirmed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
                 </div>
                 <div class="flex space-x-2">
@@ -174,12 +174,20 @@
         
         <div class="space-y-3">
           <div v-for="appt in todaysAppointments" :key="appt.id" class="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <div>
-              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleTimeString() }} - {{ appt.reason }}</p>
-              <p class="text-xs text-gray-600">Status: {{ appt.status }}</p>
+            <div class="space-y-1">
+              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} - {{ appt.reason }} • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></p>
+              <span class="inline-flex items-center text-xs px-2 py-0.5 rounded-full"
+                :class="{
+                  'bg-green-100 text-green-700': appt.status === 'completed',
+                  'bg-yellow-100 text-yellow-700': appt.status === 'scheduled' || appt.status === 'rescheduled',
+                  'bg-gray-100 text-gray-700': appt.status !== 'completed' && appt.status !== 'scheduled' && appt.status !== 'rescheduled',
+                }">
+                {{ appt.status }}
+              </span>
             </div>
             <div class="flex space-x-2">
               <Button variant="outline" size="sm" @click="$router.push({ name: 'pet-profile', params: { id: appt.pet_id } })">View</Button>
+              <Button variant="outline" size="sm" :disabled="appt.status === 'completed'" @click="markCompleted(appt.id)">Mark Completed</Button>
               <Button size="sm" @click="openQR(appt.pet_id)" title="QR Code"><QrCode class="w-4 h-4" /></Button>
             </div>
           </div>
@@ -192,7 +200,7 @@
         <div class="space-y-3">
           <div v-for="appt in vetUpcoming" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
             <div>
-              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleString() }} - {{ appt.reason }}</p>
+              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }) }} - {{ appt.reason }} • <span class="text-gray-600">{{ petLabel(appt.pet_id) }}</span></p>
               <p class="text-xs text-gray-600 capitalize">Status: {{ appt.status }}</p>
             </div>
             <div class="flex space-x-2">
@@ -227,7 +235,7 @@
           <div v-else v-for="appt in recentCompleted" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div>
               <p class="font-medium text-rich-black">{{ appt.reason }}</p>
-              <p class="text-sm text-gray-600">{{ new Date(appt.appointment_date).toLocaleString() }}</p>
+              <p class="text-sm text-gray-600">{{ new Date(appt.appointment_date).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }) }}</p>
             </div>
             <Button variant="ghost" size="sm" @click="$router.push({ name: 'pet-profile', params: { id: appt.pet_id } })">View Records</Button>
           </div>
@@ -319,7 +327,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { usePetsStore } from '@/stores/pets'
 import { useAppointmentsStore, type CreateAppointmentRequest, type TimeSlot } from '@/stores/appointments'
 import { 
   Plus, Settings, Calendar, Clock, Users, TrendingUp, AlertCircle, QrCode 
@@ -328,6 +335,7 @@ import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import QRPreviewModal from '@/components/QRPreviewModal.vue'
 import { useQRCodesStore } from '@/stores/qrcodes'
+import { usePetsStore } from '@/stores/pets'
 
 const userStore = useUserStore()
 const petsStore = usePetsStore()
@@ -359,6 +367,13 @@ onMounted(async () => {
   }
   if (userStore.isVeterinarian || userStore.isAdmin) {
     await apptStore.fetchAppointments({ force: true })
+    // Load pets on demand for vet views when showing labels (best effort)
+    try { await petsStore.fetchPets() } catch (_) {}
+    // Also fetch labels for pets not owned by the vet
+    try {
+      const ids = apptStore.appointments.map(a => a.pet_id)
+      await ensurePetLabelsFor(ids)
+    } catch (_) {}
   }
   // Hydrate availability from vet profile if available
   if (userStore.isVeterinarian && (userStore.profile as any)?.available_hours) {
@@ -430,6 +445,27 @@ const recentCompleted = computed(() => {
 // Pets for select
 const pets = computed(() => petsStore.pets)
 
+// Cache of pet labels for vet views (since vets don't own the pets list)
+const petLabels = ref<Record<string, string>>({})
+
+async function ensurePetLabelsFor(ids: string[]): Promise<void> {
+  const unique = Array.from(new Set(ids)).filter(id => !petLabels.value[id])
+  await Promise.all(unique.map(async (id) => {
+    try {
+      const p = await petsStore.getPet(id)
+      petLabels.value[id] = `${p.name} (${p.type})`
+    } catch (_) {
+      petLabels.value[id] = 'Pet'
+    }
+  }))
+}
+
+function petLabel(petId: string): string {
+  const local = petsStore.pets.find((pp: { id: string; name: string; type: string }) => pp.id === petId)
+  if (local) return `${local.name} (${local.type})`
+  return petLabels.value[petId] || 'Pet'
+}
+
 /**
  * Load available time slots for the selected vet and date.
  */
@@ -477,6 +513,11 @@ const book = async () => {
 // Cancellation
 const cancel = async (id: string) => {
   await apptStore.cancelAppointment(id)
+}
+
+// Mark appointment completed
+const markCompleted = async (id: string) => {
+  await apptStore.updateAppointment(id, { status: 'completed' })
 }
 
 // Reschedule flow
