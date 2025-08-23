@@ -148,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Heart, Calendar, FileText, Users, Coins, Package } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
@@ -237,18 +237,36 @@ const recentPatientsWithNames = computed(() => {
 
 // Product sales aggregate for the last 7 days
 const topSales = ref<Array<{ productId: string; name?: string; quantity: number; revenue: number }>>([])
-onMounted(async () => {
+
+/**
+ * buildTopSales computes sales aggregates and hydrates product names.
+ */
+async function buildTopSales(): Promise<void> {
   const end = new Date()
   const start = new Date()
   start.setDate(end.getDate() - 7)
   // ensure orders are loaded; fetchOrders above already ran, keep non-forced to avoid extra network
   await ordersStore.fetchOrders()
+  // make sure products are available before mapping names
+  await productsStore.fetchProducts()
   const agg = await ordersStore.aggregateItemsBetween(start, end)
   const rows: Array<{ productId: string; name?: string; quantity: number; revenue: number }> = Object.entries(agg).map(([productId, v]) => ({ productId, quantity: v.quantity, revenue: v.revenue }))
   const map: Record<string, string> = {}
   for (const p of productsStore.products) map[p.id] = p.name
   rows.forEach(r => (r.name = map[r.productId]))
   topSales.value = rows.sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+}
+
+onMounted(buildTopSales)
+
+/**
+ * Re-hydrate names into existing topSales entries when product list changes.
+ */
+watch(() => productsStore.products, (list) => {
+  if (!topSales.value.length || !list?.length) return
+  const map: Record<string, string> = {}
+  for (const p of list) map[p.id] = p.name
+  topSales.value = topSales.value.map(r => ({ ...r, name: map[r.productId] || r.name }))
 })
 
 // Helpers
