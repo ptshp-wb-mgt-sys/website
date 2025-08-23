@@ -34,13 +34,9 @@ func (h *MedicalRecordHandler) CreateMedicalRecord(
 		return
 	}
 
-	// Only veterinarians can create medical records
-	if user.Role != "veterinarian" && user.Role != "admin" {
-		ErrorResponse(
-			w,
-			http.StatusForbidden,
-			"Only veterinarians can create medical records",
-		)
+	// Require a veterinarian profile (admin must also have a veterinarian profile to satisfy FK)
+	if _, err := h.db.GetVeterinarianByID(r.Context(), user.Sub); err != nil && user.Role != "admin" {
+		ErrorResponse(w, http.StatusForbidden, "Veterinarian profile required to create medical records")
 		return
 	}
 
@@ -190,13 +186,9 @@ func (h *MedicalRecordHandler) UpdateMedicalRecord(
 		return
 	}
 
-	// Only veterinarians can update medical records
-	if user.Role != "veterinarian" && user.Role != "admin" {
-		ErrorResponse(
-			w,
-			http.StatusForbidden,
-			"Only veterinarians can update medical records",
-		)
+	// Require a veterinarian profile; this also satisfies the FK constraint when updating
+	if _, err := h.db.GetVeterinarianByID(r.Context(), user.Sub); err != nil {
+		ErrorResponse(w, http.StatusForbidden, "Only veterinarians can update medical records")
 		return
 	}
 
@@ -256,13 +248,9 @@ func (h *MedicalRecordHandler) DeleteMedicalRecord(
 		return
 	}
 
-	// Only veterinarians can delete medical records
-	if user.Role != "veterinarian" && user.Role != "admin" {
-		ErrorResponse(
-			w,
-			http.StatusForbidden,
-			"Only veterinarians can delete medical records",
-		)
+	// Require a veterinarian profile
+	if _, err := h.db.GetVeterinarianByID(r.Context(), user.Sub); err != nil {
+		ErrorResponse(w, http.StatusForbidden, "Only veterinarians can delete medical records")
 		return
 	}
 

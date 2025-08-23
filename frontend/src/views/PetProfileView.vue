@@ -26,7 +26,7 @@
       <Button variant="outline" @click="initialize">Try Again</Button>
     </div>
 
-    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
       <!-- Left: Pet details -->
       <Card class="p-6 lg:col-span-1">
         <div class="space-y-3">
@@ -40,7 +40,7 @@
           <div class="pt-3 border-t flex items-center gap-2">
             <Button variant="outline" size="sm" @click="openQRModal"><QrCode class="w-4 h-4 mr-1" /> QR Code</Button>
             <Button variant="ghost" size="sm" @click="goToPublic">Public Profile</Button>
-            <Button v-if="isClient" variant="ghost" size="sm" @click="openEdit">Edit</Button>
+            <Button v-if="isClient || isVet" variant="ghost" size="sm" @click="openEdit">Edit</Button>
           </div>
         </div>
       </Card>

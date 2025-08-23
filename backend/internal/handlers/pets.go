@@ -131,18 +131,9 @@ func (h *PetHandler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Authorization check: clients can only update their own pets, admins can update any
+	// Authorization: clients can update their own pets; veterinarians and admins can update any
 	if user.Role == "client" && pet.OwnerID != user.Sub {
 		ErrorResponse(w, http.StatusForbidden, "Insufficient permissions")
-		return
-	}
-
-	if user.Role == "veterinarian" {
-		ErrorResponse(
-			w,
-			http.StatusForbidden,
-			"Veterinarians cannot update pet details",
-		)
 		return
 	}
 

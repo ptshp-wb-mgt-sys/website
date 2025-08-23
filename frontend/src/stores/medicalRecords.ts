@@ -106,8 +106,13 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: response.statusText }))
-        throw new Error(errorData.message || 'Failed to create medical record')
+        // Try to parse both { error } and { message } shapes
+        let message = response.statusText
+        try {
+          const errorData = await response.json()
+          message = (errorData && (errorData.error || errorData.message)) || message
+        } catch {}
+        throw new Error(message || 'Failed to create medical record')
       }
 
       const data = await response.json()
@@ -145,8 +150,12 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: response.statusText }))
-        throw new Error(errorData.message || 'Failed to update medical record')
+        let message = response.statusText
+        try {
+          const errorData = await response.json()
+          message = (errorData && (errorData.error || errorData.message)) || message
+        } catch {}
+        throw new Error(message || 'Failed to update medical record')
       }
 
       const data = await response.json()
@@ -188,8 +197,12 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: response.statusText }))
-        throw new Error(errorData.message || 'Failed to delete medical record')
+        let message = response.statusText
+        try {
+          const errorData = await response.json()
+          message = (errorData && (errorData.error || errorData.message)) || message
+        } catch {}
+        throw new Error(message || 'Failed to delete medical record')
       }
 
       const current = recordsByPetId.value[petId] || []
