@@ -33,7 +33,7 @@
           <!-- Credits -->
           <div class="space-y-3 text-black">
             <p class="text-base md:text-lg text-black">
-              fuled by <span aria-hidden="true">☕</span> made with <span aria-hidden="true">🤍</span> by 
+              fueled by <span aria-hidden="true">☕</span> made with <span aria-hidden="true">🤍</span> by 
               <a 
                 href="https://github.com/mrjxtr" 
                 target="_blank" 
