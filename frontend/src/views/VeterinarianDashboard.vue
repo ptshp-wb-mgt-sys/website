@@ -53,7 +53,7 @@
           </div>
           <div class="flex-1">
             <p class="text-sm font-medium text-gray-600">Revenue This Month</p>
-            <p class="text-2xl font-bold text-rich-black">₱{{ monthlyRevenue.toFixed(2) }}</p>
+            <p class="text-2xl font-bold text-rich-black">{{ formatPHP(monthlyRevenue) }}</p>
           </div>
         </div>
       </Card>
@@ -114,7 +114,7 @@
             <div>
               <p class="font-medium text-rich-black">{{ s.name || s.productId }}</p>
               <p class="text-sm text-gray-600">{{ s.quantity }} units sold this week</p>
-              <p class="text-xs text-green-600">₱{{ s.revenue.toFixed(2) }} revenue</p>
+              <p class="text-xs text-green-600">{{ formatPHP(s.revenue) }} revenue</p>
             </div>
             <Button variant="ghost" size="sm" @click="goToProducts">Details</Button>
           </div>
@@ -157,6 +157,7 @@ import { useAppointmentsStore } from '@/stores/appointments'
 import { useOrdersStore } from '@/stores/orders'
 import { useProductsStore } from '@/stores/products'
 import { usePetsStore } from '@/stores/pets'
+import { formatPHP } from '@/lib/utils'
 
 const router = useRouter()
 const apptStore = useAppointmentsStore()

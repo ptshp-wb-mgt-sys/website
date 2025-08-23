@@ -17,6 +17,9 @@ export function formatPHP(amount: number): string {
     return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount)
   } catch {
     const safe = isFinite(amount) ? amount : 0
-    return `₱${safe.toFixed(2)}`
+    // Fallback: manual format with comma separators
+    const parts = safe.toFixed(2).split('.')
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return `₱${parts.join('.')}`
   }
 } 
