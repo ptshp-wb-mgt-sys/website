@@ -23,3 +23,42 @@ export function formatPHP(amount: number): string {
     return `₱${parts.join('.')}`
   }
 } 
+
+/**
+ * formatTimeHM returns HH:mm for a given ISO datetime string.
+ * Defaults to interpreting the input as UTC to avoid timezone drift across clients.
+ */
+export function formatTimeHM(iso: string, useUTC = true): string {
+  try {
+    const d = new Date(iso)
+    return d.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: useUTC ? 'UTC' : undefined,
+    })
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * formatDateTimeMDYHM returns "M/D/YYYY, HH:mm" for a given ISO datetime string.
+ * By default uses the viewer's local timezone; pass useUTC=true to force UTC.
+ */
+export function formatDateTimeMDYHM(iso: string, useUTC = false): string {
+  try {
+    const d = new Date(iso)
+    return d.toLocaleString([], {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: useUTC ? 'UTC' : undefined,
+    })
+  } catch {
+    return ''
+  }
+}

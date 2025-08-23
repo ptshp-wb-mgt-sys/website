@@ -105,7 +105,7 @@
         <p v-if="uiError" class="text-sm text-red-600 mt-3">{{ uiError }}</p>
         <div v-if="slots.length" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
           <Button v-for="s in slots" :key="s.start_time" variant="outline" :disabled="isSlotInPast(s)" @click="selectSlot(s)">
-            {{ new Date(s.start_time).toLocaleTimeString() }}
+            {{ formatTimeHM(s.start_time, false) }}
           </Button>
         </div>
         <p v-else-if="triedLoadSlots" class="text-sm text-gray-600 mt-2">No available time slots for the selected day.</p>
@@ -129,7 +129,7 @@
         </div>
         <div v-if="slots.length" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
           <Button v-for="s in slots" :key="s.start_time" variant="outline" @click="selectSlot(s)">
-            {{ new Date(s.start_time).toLocaleTimeString() }}
+            {{ formatTimeHM(s.start_time, false) }}
           </Button>
         </div>
         <div class="mt-4 flex space-x-2" v-if="selectedSlot">
@@ -147,7 +147,7 @@
               <div class="flex items-center justify-between">
                 <div class="space-y-1">
                   <h3 class="font-semibold text-rich-black">{{ appt.reason }} • <span class="text-gray-600">{{ petLabel(appt.pet_id) }}</span></h3>
-                  <p class="text-sm text-gray-600">{{ new Date(appt.appointment_date).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }) }}</p>
+                  <p class="text-sm text-gray-600">{{ formatDateTimeMDYHM(appt.appointment_date) }}</p>
                   <p class="text-xs" :class="appt.status === 'confirmed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
                 </div>
                 <div class="flex space-x-2">
@@ -167,7 +167,7 @@
               <div class="flex items-center justify-between">
                 <div class="space-y-1">
                   <h3 class="font-semibold text-rich-black">{{ appt.reason }}</h3>
-                  <p class="text-sm text-gray-600">{{ new Date(appt.appointment_date).toLocaleString() }}</p>
+                  <p class="text-sm text-gray-600">{{ formatDateTimeMDYHM(appt.appointment_date) }}</p>
                   <p class="text-xs" :class="appt.status === 'completed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
                 </div>
                 <div class="flex space-x-2">
@@ -230,7 +230,7 @@
         <div class="space-y-3">
           <div v-for="appt in todaysAppointments" :key="appt.id" class="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <div class="space-y-1">
-              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} - {{ appt.reason }} • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></p>
+              <p class="font-medium text-rich-black">{{ formatTimeHM(appt.appointment_date, false) }} - {{ appt.reason }} • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></p>
               <span class="inline-flex items-center text-xs px-2 py-0.5 rounded-full"
                 :class="{
                   'bg-green-100 text-green-700': appt.status === 'completed',
@@ -255,7 +255,7 @@
         <div class="space-y-3">
           <div v-for="appt in vetUpcoming" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
             <div>
-              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }) }} - {{ appt.reason }} • <span class="text-gray-600">{{ petLabel(appt.pet_id) }}</span></p>
+              <p class="font-medium text-rich-black">{{ formatDateTimeMDYHM(appt.appointment_date) }} - {{ appt.reason }} • <span class="text-gray-600">{{ petLabel(appt.pet_id) }}</span></p>
               <p class="text-xs text-gray-600 capitalize">Status: {{ appt.status }}</p>
             </div>
             <div class="flex space-x-2">
@@ -290,7 +290,7 @@
           <div v-else v-for="appt in recentCompleted" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div>
               <p class="font-medium text-rich-black">{{ appt.reason }}</p>
-              <p class="text-sm text-gray-600">{{ new Date(appt.appointment_date).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }) }}</p>
+              <p class="text-sm text-gray-600">{{ formatDateTimeMDYHM(appt.appointment_date) }}</p>
             </div>
             <Button variant="ghost" size="sm" @click="$router.push({ name: 'pet-profile', params: { id: appt.pet_id } })">View Records</Button>
           </div>
@@ -391,6 +391,7 @@ import Card from '@/components/ui/Card.vue'
 import QRPreviewModal from '@/components/QRPreviewModal.vue'
 import { useQRCodesStore } from '@/stores/qrcodes'
 import { usePetsStore } from '@/stores/pets'
+import { formatTimeHM, formatDateTimeMDYHM } from '@/lib/utils'
 
 const userStore = useUserStore()
 const petsStore = usePetsStore()

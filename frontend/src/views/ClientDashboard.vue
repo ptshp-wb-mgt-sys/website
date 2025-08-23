@@ -168,6 +168,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { formatDateTimeMDYHM } from '@/lib/utils'
 import { Plus, Heart, Calendar, FileText, ShoppingBag, QrCode } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
@@ -287,7 +288,7 @@ const formatAge = (dateOfBirth: string) => {
  * Helpers to format appointments.
  */
 const formatApptTitle = (appt: Appointment) => `${appt.reason}`
-const formatApptWhen = (appt: Appointment) => new Date(appt.appointment_date).toLocaleString()
+const formatApptWhen = (appt: Appointment) => formatDateTimeMDYHM(appt.appointment_date)
 
 /**
  * Navigation helpers.

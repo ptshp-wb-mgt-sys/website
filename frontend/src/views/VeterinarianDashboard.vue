@@ -71,7 +71,7 @@
           <div v-if="todaysList.length === 0" class="text-sm text-gray-600">No appointments today.</div>
           <div v-for="appt in todaysList" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div class="space-y-1">
-              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} — {{ appt.reason }}<template v-if="hasPetLabel(appt.pet_id)"> • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></template></p>
+              <p class="font-medium text-rich-black">{{ formatTimeHM(appt.appointment_date, false) }} — {{ appt.reason }}<template v-if="hasPetLabel(appt.pet_id)"> • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></template></p>
               <p class="text-xs capitalize" :class="appt.status === 'confirmed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
             </div>
             <Button variant="ghost" size="sm" @click="goToPet(appt.pet_id)">Start Visit</Button>
@@ -189,6 +189,8 @@ onMounted(async () => {
 // Stats
 const todaysCount = computed(() => apptStore.todaysAppointments.length)
 const todaysList = computed(() => apptStore.todaysAppointments)
+import { formatTimeHM } from '@/lib/utils'
+
 const visitsThisWeek = computed(() => {
   const now = new Date()
   const start = new Date(now)
