@@ -27,6 +27,24 @@
       </div>
 
       <div v-else-if="userStore.profile" class="space-y-6">
+        <!-- Avatar + Upload (coming soon) -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="w-20 h-20 rounded-full bg-gray-100 border flex items-center justify-center text-2xl text-gray-400 select-none">
+              {{ getInitial(userStore.profile.name) }}
+            </div>
+            <div>
+              <div class="text-xl font-semibold text-rich-black">{{ userStore.profile.name }}</div>
+              <div class="text-gray-500">{{ userStore.roleDisplayName }}</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <Button variant="outline" size="sm" disabled>
+              <Camera class="w-4 h-4 mr-1" /> Upload Photo
+            </Button>
+            <p class="text-xs text-gray-400 mt-1">Coming soon</p>
+          </div>
+        </div>
         <!-- Display Mode -->
         <div v-if="!editing" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -184,6 +202,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { Camera } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
@@ -295,5 +314,13 @@ const saveProfile = async () => {
   } finally {
     saving.value = false
   }
+}
+
+/**
+ * getInitial returns the first letter of a name in uppercase.
+ */
+const getInitial = (name: string): string => {
+  const n = (name || '').trim()
+  return n ? n.charAt(0).toUpperCase() : '?'
 }
 </script> 
