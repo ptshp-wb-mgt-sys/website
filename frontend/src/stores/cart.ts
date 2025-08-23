@@ -74,10 +74,15 @@ export const useCartStore = defineStore('cart', () => {
   const distinctCount = computed(() => items.value.length)
   const subtotal = computed(() => items.value.reduce((sum, i) => sum + i.price * i.quantity, 0))
 
+  /** Serialize items for API consumption */
+  function toCheckoutPayload(): Array<{ product_id: string; quantity: number }> {
+    return items.value.map(i => ({ product_id: i.productId, quantity: i.quantity }))
+  }
+
   // initialize from storage on first use
   loadFromStorage()
 
-  return { items, itemCount, distinctCount, subtotal, addItem, updateQuantity, removeItem, clear }
+  return { items, itemCount, distinctCount, subtotal, addItem, updateQuantity, removeItem, clear, toCheckoutPayload }
 })
 
 

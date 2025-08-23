@@ -53,11 +53,11 @@
       <Card class="p-6">
         <div class="flex items-center">
           <div class="w-12 h-12 bg-aquamarine-100 rounded-lg flex items-center justify-center mr-4">
-            <DollarSign class="w-6 h-6 text-aquamarine" />
+            <Coins class="w-6 h-6 text-aquamarine" />
           </div>
           <div class="flex-1">
             <p class="text-sm font-medium text-gray-600">Revenue This Month</p>
-            <p class="text-2xl font-bold text-rich-black">${{ monthlyRevenue.toFixed(2) }}</p>
+            <p class="text-2xl font-bold text-rich-black">₱{{ monthlyRevenue.toFixed(2) }}</p>
           </div>
         </div>
       </Card>
@@ -118,7 +118,7 @@
             <div>
               <p class="font-medium text-rich-black">{{ s.name || s.productId }}</p>
               <p class="text-sm text-gray-600">{{ s.quantity }} units sold this week</p>
-              <p class="text-xs text-green-600">${{ s.revenue.toFixed(2) }} revenue</p>
+              <p class="text-xs text-green-600">₱{{ s.revenue.toFixed(2) }} revenue</p>
             </div>
             <Button variant="ghost" size="sm" @click="goToProducts">Details</Button>
           </div>
@@ -154,7 +154,7 @@
 <script setup lang="ts">
 import { onMounted, computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Heart, Calendar, FileText, Users, DollarSign, Package } from 'lucide-vue-next'
+import { Plus, Heart, Calendar, FileText, Users, Coins, Package } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import { useAppointmentsStore } from '@/stores/appointments'
@@ -167,11 +167,10 @@ const ordersStore = useOrdersStore()
 const productsStore = useProductsStore()
 
 onMounted(async () => {
-  await Promise.all([
-    apptStore.fetchAppointments({ force: true }),
-    ordersStore.fetchOrders({ force: true }),
-    productsStore.fetchProducts({ force: true }),
-  ])
+  await apptStore.fetchAppointments({ force: true })
+  await ordersStore.fetchOrders({ force: true })
+  // Ensure we have orders before aggregating sales
+  await productsStore.fetchProducts({ force: true })
 })
 
 // Stats
@@ -220,10 +219,10 @@ onMounted(async () => {
   const end = new Date()
   const start = new Date()
   start.setDate(end.getDate() - 7)
-  await ordersStore.fetchOrders({ force: true })
+  // ensure orders are loaded; fetchOrders above already ran, keep non-forced to avoid extra network
+  await ordersStore.fetchOrders()
   const agg = await ordersStore.aggregateItemsBetween(start, end)
   const rows: Array<{ productId: string; name?: string; quantity: number; revenue: number }> = Object.entries(agg).map(([productId, v]) => ({ productId, quantity: v.quantity, revenue: v.revenue }))
-  // Try to map names if loaded
   const map: Record<string, string> = {}
   for (const p of productsStore.products) map[p.id] = p.name
   rows.forEach(r => (r.name = map[r.productId]))

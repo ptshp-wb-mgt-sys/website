@@ -3,12 +3,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"pet-mgt/backend/internal/middleware"
 	"pet-mgt/backend/internal/store"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // ProductHandler handles product operations
@@ -72,6 +74,16 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		veterinarianID = r.URL.Query().Get("veterinarian_id")
 	}
 
+	// Ensure veterinarian exists to avoid FK violations
+	if _, err := h.db.GetVeterinarianByID(r.Context(), veterinarianID); err != nil {
+		ErrorResponse(
+			w,
+			http.StatusBadRequest,
+			"Veterinarian profile not found. Please complete your profile before adding products.",
+		)
+		return
+	}
+
 	product := store.NewProduct(
 		veterinarianID,
 		req.Name,
@@ -80,7 +92,12 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		req.Price,
 	)
 	product.StockQuantity = req.StockQuantity
-	product.SKU = req.SKU
+	// Ensure unique SKU; auto-generate if blank
+	if req.SKU != "" {
+		product.SKU = req.SKU
+	} else {
+		product.SKU = "SKU-" + uuid.NewString()[:8]
+	}
 	product.Brand = req.Brand
 	product.Weight = req.Weight
 	product.Dimensions = req.Dimensions
@@ -88,7 +105,8 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	product.Images = req.Images
 
 	if err := h.db.CreateProduct(r.Context(), product); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Failed to create product")
+		log.Printf("create product failed: %v", err)
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -390,4 +408,77 @@ func (h *ProductHandler) UpdateProductStock(w http.ResponseWriter, r *http.Reque
 	}
 
 	MessageResponse(w, http.StatusOK, "Stock updated successfully")
+}
+
+// CheckoutProducts decrements stock for arbitrary products.
+// Clients can reduce stock for items in their cart across different veterinarians.
+func (h *ProductHandler) CheckoutProducts(w http.ResponseWriter, r *http.Request) {
+	// Auth
+	user, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	if user.Role != "client" && user.Role != "admin" {
+		ErrorResponse(w, http.StatusForbidden, "Only clients can checkout")
+		return
+	}
+
+	// Parse request
+	var req struct {
+		Items []struct {
+			ProductID string `json:"product_id"`
+			Quantity  int    `json:"quantity"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	if len(req.Items) == 0 {
+		ErrorResponse(w, http.StatusBadRequest, "No items provided")
+		return
+	}
+
+	// Aggregate by product id in case of duplicates
+	totals := map[string]int{}
+	for _, it := range req.Items {
+		if it.ProductID == "" || it.Quantity <= 0 {
+			ErrorResponse(w, http.StatusBadRequest, "Invalid item payload")
+			return
+		}
+		totals[it.ProductID] += it.Quantity
+	}
+
+	type updatedItem struct {
+		ProductID string `json:"product_id"`
+		NewStock  int    `json:"new_stock"`
+	}
+	updated := make([]updatedItem, 0, len(totals))
+
+	// Validate availability first
+	for pid, q := range totals {
+		p, err := h.db.GetProductByID(r.Context(), pid)
+		if err != nil {
+			ErrorResponse(w, http.StatusNotFound, "Product not found: "+pid)
+			return
+		}
+		if p.StockQuantity < q {
+			ErrorResponse(w, http.StatusBadRequest, "Insufficient stock for product: "+p.Name)
+			return
+		}
+	}
+
+	// Apply stock updates
+	for pid, q := range totals {
+		p, _ := h.db.GetProductByID(r.Context(), pid)
+		newQty := p.StockQuantity - q
+		if err := h.db.UpdateProductStock(r.Context(), pid, newQty); err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, "Failed to update stock")
+			return
+		}
+		updated = append(updated, updatedItem{ProductID: pid, NewStock: newQty})
+	}
+
+	SuccessResponse(w, map[string]any{"updated": updated})
 }

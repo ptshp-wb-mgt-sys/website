@@ -105,6 +105,7 @@ func protectedRoutes(r chi.Router, h *handlers.Handlers) {
 	r.Delete("/products/{id}", h.Product.DeleteProduct)
 	r.Get("/veterinarians/{vetId}/products", h.Product.GetVeterinarianProducts)
 	r.Put("/products/{id}/stock", h.Product.UpdateProductStock)
+	r.Post("/products/checkout", h.Product.CheckoutProducts)
 
 	// Order routes
 	r.Post("/orders", h.Order.CreateOrder)

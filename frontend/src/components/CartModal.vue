@@ -34,8 +34,12 @@
 
       <div class="grid grid-cols-2 gap-3">
         <Button variant="outline" @click="cart.clear" :disabled="cart.items.length === 0">Clear</Button>
-        <Button disabled title="Coming soon">Checkout (Coming soon)</Button>
+        <Button :disabled="cart.items.length === 0" @click="checkout">Checkout</Button>
       </div>
+
+      <p class="text-xs text-gray-500 text-center">
+        Note: Checkout is for demo purposes only; no real payment or fulfillment.
+      </p>
     </div>
   </div>
 </template>
@@ -46,9 +50,9 @@ import { useCartStore } from '@/stores/cart'
 import { formatPHP } from '@/lib/utils'
 import { defineProps, defineEmits } from 'vue'
 
-/** Simple modal to show cart contents with disabled checkout. */
+/** Simple cart modal. Emits `checkout` with items on confirm. */
 const props = defineProps<{ open: boolean }>()
-const emit = defineEmits<{ (e: 'close'): void }>()
+const emit = defineEmits<{ (e: 'close'): void; (e: 'checkout', items: Array<{ productId: string; quantity: number }> ): void }>()
 
 const cart = useCartStore()
 
@@ -60,6 +64,13 @@ function onQtyInput(productId: string, evt: Event): void {
   const target = evt.target as HTMLInputElement
   const value = parseInt(target.value, 10)
   cart.updateQuantity(productId, isFinite(value) ? value : 0)
+}
+
+function checkout(): void {
+  const payload = cart.items.map(i => ({ productId: i.productId, quantity: i.quantity }))
+  emit('checkout', payload)
+  cart.clear()
+  emit('close')
 }
 </script>
 

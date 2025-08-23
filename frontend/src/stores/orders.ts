@@ -83,7 +83,7 @@ export const useOrdersStore = defineStore('orders', () => {
     })
     if (!res.ok) throw new Error(res.statusText)
     const body = await res.json()
-    const items = (body.items || []) as OrderItem[]
+    const items = ((body.data && body.data.items) || body.items || []) as OrderItem[]
     orderItemsByOrderId.value[orderId] = items
     return items
   }

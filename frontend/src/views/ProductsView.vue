@@ -40,7 +40,13 @@
             <p class="text-sm text-gray-600 line-clamp-2">{{ p.description }}</p>
             <div class="flex items-center justify-between">
               <span class="text-lg font-bold text-aquamarine">{{ formatPHP(p.price) }}</span>
-              <span class="text-sm text-gray-500">{{ p.stock_quantity > 0 ? (p.stock_quantity < 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock' }}</span>
+              <span class="text-sm text-gray-500">
+                {{ p.stock_quantity > 0
+                  ? (p.stock_quantity < 5
+                    ? `Low Stock (${p.stock_quantity})`
+                    : `In Stock (${p.stock_quantity})`)
+                  : 'Out of Stock' }}
+              </span>
             </div>
           </div>
 
@@ -64,7 +70,7 @@
     </div>
 
     <!-- Cart modal -->
-    <CartModal :open="openCart" @close="openCart = false" />
+    <CartModal :open="openCart" @close="openCart = false" @checkout="applyCheckout" />
 
     <!-- Product modal -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
@@ -132,12 +138,14 @@ import CartModal from '@/components/CartModal.vue'
 import { useProductsStore, type Product } from '@/stores/products'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
+import { useAuthStore } from '@/stores/auth'
 import { formatPHP } from '@/lib/utils'
 
 /** Products page supporting browsing for clients and managing for vets. */
 const productsStore = useProductsStore()
 const cart = useCartStore()
 const userStore = useUserStore()
+const authStore = useAuthStore()
 
 const category = ref('')
 const search = ref('')
@@ -245,4 +253,44 @@ watch(() => userStore.isVeterinarian, (isVet) => {
     productsStore.fetchProducts({ force: true })
   }
 })
+
+async function applyCheckout(items: Array<{ productId: string; quantity: number }>): Promise<void> {
+  // Group items by veterinarian for order creation
+  const vetToItems: Record<string, Array<{ product_id: string; quantity: number }>> = {}
+  for (const it of items) {
+    const prod = productsStore.products.find(p => p.id === it.productId)
+    if (!prod) continue
+    const vetId = prod.veterinarian_id
+    if (!vetToItems[vetId]) vetToItems[vetId] = []
+    vetToItems[vetId].push({ product_id: it.productId, quantity: it.quantity })
+  }
+
+  // Fire one order per veterinarian
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (authStore.session?.access_token) headers['Authorization'] = `Bearer ${authStore.session.access_token}`
+
+    await Promise.all(
+      Object.entries(vetToItems).map(async ([vetId, orderItems]) => {
+        const res = await fetch('http://localhost:3000/api/v1/orders', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ veterinarian_id: vetId, items: orderItems }),
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(body.error || res.statusText)
+      })
+    )
+  } catch (_) {
+    // Ignore for now; UI will still update below
+  }
+
+  // Update local stock optimistically
+  for (const it of items) {
+    const prod = productsStore.products.find(p => p.id === it.productId)
+    if (prod) prod.stock_quantity = Math.max(0, prod.stock_quantity - it.quantity)
+  }
+}
 </script>
