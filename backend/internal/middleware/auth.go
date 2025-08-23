@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"pet-mgt/backend/internal/config"
+	"pet-mgt/backend/internal/store"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,8 +25,8 @@ type ContextKey string
 
 const UserContextKey ContextKey = "user"
 
-// JWTAuth verifies JWT tokens from Supabase
-func JWTAuth(cfg *config.Config) func(http.Handler) http.Handler {
+// JWTAuth verifies JWT tokens from Supabase and enriches role from DB
+func JWTAuth(cfg *config.Config, db store.Database) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := extractToken(r)
@@ -42,6 +43,13 @@ func JWTAuth(cfg *config.Config) func(http.Handler) http.Handler {
 			if err != nil {
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
+			}
+
+			// Hydrate role from DB so app authorization uses our roles
+			if db != nil && claims != nil && claims.Sub != "" {
+				if u, err := db.GetUserByID(r.Context(), claims.Sub); err == nil && u != nil && u.Role != "" {
+					claims.Role = u.Role
+				}
 			}
 
 			// Add user info to request context

@@ -32,7 +32,7 @@ func SetupRouter(cfg *config.Config, db store.Database) *chi.Mux {
 		// Protected routes with their own middleware
 		r.Group(func(r chi.Router) {
 			r.Use(httprate.LimitByIP(100, 1*time.Minute))
-			r.Use(middleware.JWTAuth(cfg))
+			r.Use(middleware.JWTAuth(cfg, db))
 			protectedRoutes(r, h)
 		})
 	})
