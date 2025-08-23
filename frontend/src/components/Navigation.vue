@@ -66,13 +66,6 @@
             >
               Manage Products
             </RouterLink>
-            <RouterLink
-              to="/medical-records"
-              class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'medical-records' }"
-            >
-              Medical Records
-            </RouterLink>
           </template>
 
           <!-- Admin Navigation -->

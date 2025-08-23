@@ -84,12 +84,6 @@ const router = createRouter({
       component: () => import('../views/ProductsView.vue'),
       meta: { requiresAuth: true, allowedRoles: ['veterinarian'] },
     },
-    {
-      path: '/medical-records',
-      name: 'medical-records',
-      component: () => import('../views/AppointmentsView.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['veterinarian'] },
-    },
 
     // Admin Routes
     {
