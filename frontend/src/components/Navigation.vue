@@ -41,6 +41,13 @@
             >
               Browse Products
             </RouterLink>
+            <RouterLink
+              to="/about"
+              class="text-black hover:text-aquamarine transition-colors"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'about' }"
+            >
+              About
+            </RouterLink>
           </template>
 
           <!-- Veterinarian Navigation -->
@@ -65,6 +72,13 @@
               :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'manage-products' }"
             >
               Manage Products
+            </RouterLink>
+            <RouterLink
+              to="/about"
+              class="text-black hover:text-aquamarine transition-colors"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'about' }"
+            >
+              About
             </RouterLink>
           </template>
 
@@ -98,10 +112,6 @@
             >
               Analytics
             </RouterLink>
-          </template>
-
-          <!-- Trailing: About + Icons (rightmost) -->
-          <div class="flex items-center space-x-4">
             <RouterLink
               to="/about"
               class="text-black hover:text-aquamarine transition-colors"
@@ -109,6 +119,17 @@
             >
               About
             </RouterLink>
+          </template>
+
+          <!-- Trailing: Icons (rightmost) -->
+          <div class="flex items-center space-x-4">
+            <!-- <RouterLink
+              to="/about"
+              class="text-black hover:text-aquamarine transition-colors"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'about' }"
+            >
+              About
+            </RouterLink> -->
             <a
               href="https://github.com/ptshp-wb-mgt-sys/website"
               target="_blank"
