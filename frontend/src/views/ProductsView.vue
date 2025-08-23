@@ -234,6 +234,15 @@ async function saveProduct(): Promise<void> {
     } else {
       await productsStore.createProduct({ ...form })
     }
+    // Force-refresh list so newly saved item shows up immediately
+    const opts: { veterinarianId?: string; force: boolean; category?: string; search?: string } = { force: true }
+    if (userStore.isVeterinarian && userStore.profile) {
+      opts.veterinarianId = userStore.profile.id
+    }
+    if (category.value) opts.category = category.value
+    const q = search.value.trim()
+    if (q) opts.search = q
+    await productsStore.fetchProducts(opts)
     showModal.value = false
   } finally {
     saving.value = false
