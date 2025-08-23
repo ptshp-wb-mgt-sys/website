@@ -6,10 +6,6 @@
         <h1 class="text-3xl font-bold text-rich-black">My Pet Dashboard</h1>
         <p class="text-gray-600 mt-1">Manage your pets and appointments</p>
       </div>
-      <Button @click="openAddPetModal">
-        <Plus class="w-4 h-4 mr-2" />
-        Add New Pet
-      </Button>
     </div>
 
     <!-- Stats Cards -->
@@ -152,8 +148,8 @@
             <span class="text-sm">Shop Products</span>
           </Button>
           <Button variant="outline" class="flex flex-col items-center p-4 h-auto" @click="goToMyPets">
-            <QrCode class="w-6 h-6 mb-2" />
-            <span class="text-sm">QR Codes</span>
+            <Heart class="w-6 h-6 mb-2" />
+            <span class="text-sm">View Pets</span>
           </Button>
         </div>
       </Card>

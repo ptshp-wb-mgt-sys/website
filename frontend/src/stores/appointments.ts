@@ -26,6 +26,14 @@ export interface CreateAppointmentRequest {
   notes?: string
 }
 
+export interface UpdateAppointmentRequest {
+  appointment_date?: string
+  duration_minutes?: number
+  reason?: string
+  status?: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled'
+  notes?: string
+}
+
 export interface TimeSlot {
   start_time: string
   end_time: string
@@ -40,11 +48,21 @@ export interface VeterinarianListItem {
   clinic_address?: string
 }
 
+export interface SetAvailabilityRequest {
+  available_hours: Array<{
+    day_of_week: string
+    start: string
+    end: string
+  }>
+  clinic_address?: string
+}
+
 export const useAppointmentsStore = defineStore('appointments', () => {
   const appointments = ref<Appointment[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const lastFetchedAt = ref<number | null>(null)
+  const lastFetchedUserId = ref<string | null>(null)
 
   const authStore = useAuthStore()
 
@@ -55,7 +73,9 @@ export const useAppointmentsStore = defineStore('appointments', () => {
   const fetchAppointments = async (options?: { force?: boolean; ttlMs?: number }) => {
     const force = options?.force === true
     const ttlMs = options?.ttlMs ?? 60 * 1000
-    if (!force && appointments.value.length > 0 && lastFetchedAt.value && Date.now() - lastFetchedAt.value < ttlMs) {
+    const currentUserId = authStore.user?.id || null
+    const userChanged = currentUserId !== lastFetchedUserId.value
+    if (!force && !userChanged && appointments.value.length > 0 && lastFetchedAt.value && Date.now() - lastFetchedAt.value < ttlMs) {
       return
     }
     if (!authStore.session?.access_token) {
@@ -81,6 +101,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
       const data = await response.json()
       appointments.value = (data.data || data) as Appointment[]
       lastFetchedAt.value = Date.now()
+      lastFetchedUserId.value = currentUserId
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch appointments'
       console.error('Error fetching appointments:', err)
@@ -128,6 +149,78 @@ export const useAppointmentsStore = defineStore('appointments', () => {
   }
 
   /**
+   * Update an existing appointment.
+   */
+  const updateAppointment = async (id: string, updates: UpdateAppointmentRequest) => {
+    if (!authStore.session?.access_token) {
+      throw new Error('No authentication token')
+    }
+
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/appointments/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${authStore.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: response.statusText }))
+        throw new Error(errorData.message || 'Failed to update appointment')
+      }
+
+      const data = await response.json()
+      const updated = (data.data || data) as Appointment
+      const idx = appointments.value.findIndex(a => a.id === id)
+      if (idx !== -1) {
+        appointments.value[idx] = updated
+      }
+      return updated
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to update appointment'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Cancel appointment (soft-cancel on backend).
+   */
+  const cancelAppointment = async (id: string) => {
+    if (!authStore.session?.access_token) {
+      throw new Error('No authentication token')
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/appointments/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authStore.session.access_token}`,
+        },
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: response.statusText }))
+        throw new Error(errorData.message || 'Failed to cancel appointment')
+      }
+
+      // Optimistic update: set status to cancelled
+      const idx = appointments.value.findIndex(a => a.id === id)
+      if (idx !== -1) {
+        appointments.value[idx] = { ...appointments.value[idx], status: 'cancelled', updated_at: new Date().toISOString() }
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to cancel appointment'
+      throw err
+    }
+  }
+
+  /**
    * Get available time slots for a veterinarian on a given date.
    */
   const getAvailableSlots = async (veterinarianId: string, dateISO: string) => {
@@ -135,8 +228,15 @@ export const useAppointmentsStore = defineStore('appointments', () => {
       throw new Error('No authentication token')
     }
 
+    // Backend expects YYYY-MM-DD
+    const dateOnly = new Date(dateISO)
+    const y = dateOnly.getFullYear()
+    const m = String(dateOnly.getMonth() + 1).padStart(2, '0')
+    const d = String(dateOnly.getDate()).padStart(2, '0')
+    const dateParam = `${y}-${m}-${d}`
+
     const response = await fetch(
-      `http://localhost:3000/api/v1/veterinarians/${encodeURIComponent(veterinarianId)}/availability?date=${encodeURIComponent(dateISO)}`,
+      `http://localhost:3000/api/v1/veterinarians/${encodeURIComponent(veterinarianId)}/availability?date=${encodeURIComponent(dateParam)}`,
       {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -175,11 +275,39 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     return (data.data || data) as VeterinarianListItem[]
   }
 
+  /**
+   * Veterinarian: set availability windows
+   */
+  const setAvailability = async (veterinarianId: string, req: SetAvailabilityRequest) => {
+    if (!authStore.session?.access_token) {
+      throw new Error('No authentication token')
+    }
+
+    const response = await fetch(`http://localhost:3000/api/v1/veterinarians/${encodeURIComponent(veterinarianId)}/availability`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authStore.session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(req),
+    })
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }))
+      throw new Error(errorData.message || 'Failed to set availability')
+    }
+    return await response.json()
+  }
+
   // Helpers
   const upcomingAppointments = computed(() => {
-    const now = Date.now()
+    const now = new Date()
+    // Start of today in local timezone
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
     return [...appointments.value]
-      .filter(a => new Date(a.appointment_date).getTime() >= now)
+      .filter(a => {
+        const t = new Date(a.appointment_date).getTime()
+        return t >= startOfToday && a.status !== 'cancelled'
+      })
       .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
   })
 
@@ -232,8 +360,11 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     // Actions
     fetchAppointments,
     createAppointment,
+    updateAppointment,
+    cancelAppointment,
     getAvailableSlots,
     listVeterinarians,
+    setAvailability,
     clearAppointments,
     initialize,
   }

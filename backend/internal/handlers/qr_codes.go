@@ -40,6 +40,8 @@ func (h *QRCodeHandler) GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, role := user.Sub, user.Role
+	// Normalize to application role (client/veterinarian/admin)
+	role = deriveRole(r.Context(), h.db, user)
 
 	// Get pet details
 	pet, err := h.db.GetPetByID(r.Context(), petID)
@@ -120,6 +122,7 @@ func (h *QRCodeHandler) GetQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, role := user.Sub, user.Role
+	role = deriveRole(r.Context(), h.db, user)
 
 	// Get pet details for permission check
 	pet, err := h.db.GetPetByID(r.Context(), petID)
@@ -183,6 +186,7 @@ func (h *QRCodeHandler) UpdateQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, role := user.Sub, user.Role
+	role = deriveRole(r.Context(), h.db, user)
 
 	// Get pet details for permission check
 	pet, err := h.db.GetPetByID(r.Context(), petID)
@@ -251,6 +255,7 @@ func (h *QRCodeHandler) DeleteQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, role := user.Sub, user.Role
+	role = deriveRole(r.Context(), h.db, user)
 
 	// Get pet details for permission check
 	pet, err := h.db.GetPetByID(r.Context(), petID)

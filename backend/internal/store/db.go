@@ -553,47 +553,129 @@ func (s *SupabaseService) GetAvailableAppointmentSlots(
 	vetID string,
 	date time.Time,
 ) ([]TimeSlot, error) {
-	// NOTE: This is a simplified implementation
-	// In a real system, you'd need to:
-	// 1. Get veterinarian's working hours for the day
-	// 2. Get existing appointments for that day
-	// 3. Calculate available slots
+	// Fetch veterinarian working hours
+	vet, err := s.GetVeterinarianByID(ctx, vetID)
+	if err != nil {
+		return nil, err
+	}
 
-	// For now, return some sample slots
-	slots := []TimeSlot{
-		{
-			StartTime: date.Add(9 * time.Hour),
-			EndTime:   date.Add(9*time.Hour + 30*time.Minute),
-			Available: true,
-		},
-		{
-			StartTime: date.Add(10 * time.Hour),
-			EndTime:   date.Add(10*time.Hour + 30*time.Minute),
-			Available: true,
-		},
-		{
-			StartTime: date.Add(11 * time.Hour),
-			EndTime:   date.Add(11*time.Hour + 30*time.Minute),
-			Available: false,
-		},
-		{
-			StartTime: date.Add(14 * time.Hour),
-			EndTime:   date.Add(14*time.Hour + 30*time.Minute),
-			Available: true,
-		},
-		{
-			StartTime: date.Add(15 * time.Hour),
-			EndTime:   date.Add(15*time.Hour + 30*time.Minute),
-			Available: true,
-		},
-		{
-			StartTime: date.Add(16 * time.Hour),
-			EndTime:   date.Add(16*time.Hour + 30*time.Minute),
-			Available: true,
-		},
+	// Determine windows for the requested day
+	weekdayKey := weekdayToKey(date.Weekday())
+	type window struct {
+		start time.Time
+		end   time.Time
+	}
+	var windows []window
+	for _, wh := range vet.AvailableHours {
+		if normalizeDayKey(wh.DayOfWeek) != weekdayKey {
+			continue
+		}
+		startParsed, err1 := time.Parse("15:04", wh.Start)
+		endParsed, err2 := time.Parse("15:04", wh.End)
+		if err1 != nil || err2 != nil {
+			continue
+		}
+		ws := time.Date(date.Year(), date.Month(), date.Day(), startParsed.Hour(), startParsed.Minute(), 0, 0, date.Location())
+		we := time.Date(date.Year(), date.Month(), date.Day(), endParsed.Hour(), endParsed.Minute(), 0, 0, date.Location())
+		if we.After(ws) {
+			windows = append(windows, window{start: ws, end: we})
+		}
+	}
+
+	if len(windows) == 0 {
+		return []TimeSlot{}, nil
+	}
+
+	// Fetch existing appointments for that day
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
+	var appts []Appointment
+	_, err = s.client.From("appointments").
+		Select("*", "", false).
+		Eq("veterinarian_id", vetID).
+		Gte("appointment_date", startOfDay.Format(time.RFC3339)).
+		Lt("appointment_date", endOfDay.Format(time.RFC3339)).
+		ExecuteTo(&appts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ignore cancelled appointments
+	activeAppts := make([]Appointment, 0, len(appts))
+	for _, a := range appts {
+		if a.Status != "cancelled" {
+			activeAppts = append(activeAppts, a)
+		}
+	}
+
+	// Build 30-minute slots within the windows and mark as available if no overlap
+	const slotMinutes = 30
+	var slots []TimeSlot
+	for _, win := range windows {
+		for ts := win.start; ts.Add(time.Duration(slotMinutes)*time.Minute).Before(win.end) || ts.Add(time.Duration(slotMinutes)*time.Minute).Equal(win.end); ts = ts.Add(time.Duration(slotMinutes) * time.Minute) {
+			te := ts.Add(time.Duration(slotMinutes) * time.Minute)
+			available := true
+			for _, a := range activeAppts {
+				as := a.AppointmentDate
+				ae := as.Add(time.Duration(a.DurationMinutes) * time.Minute)
+				if intervalsOverlap(ts, te, as, ae) {
+					available = false
+					break
+				}
+			}
+			slots = append(slots, TimeSlot{StartTime: ts, EndTime: te, Available: available})
+		}
 	}
 
 	return slots, nil
+}
+
+// intervalsOverlap returns true if [s1,e1) overlaps [s2,e2)
+func intervalsOverlap(s1, e1, s2, e2 time.Time) bool {
+	return s1.Before(e2) && s2.Before(e1)
+}
+
+// weekdayToKey returns canonical three-letter weekday key
+func weekdayToKey(w time.Weekday) string {
+	switch w {
+	case time.Monday:
+		return "Mon"
+	case time.Tuesday:
+		return "Tue"
+	case time.Wednesday:
+		return "Wed"
+	case time.Thursday:
+		return "Thu"
+	case time.Friday:
+		return "Fri"
+	case time.Saturday:
+		return "Sat"
+	default:
+		return "Sun"
+	}
+}
+
+// normalizeDayKey maps arbitrary inputs to canonical three-letter weekday key
+func normalizeDayKey(s string) string {
+	switch s {
+	case "Mon", "Monday", "monday", "mon":
+		return "Mon"
+	case "Tue", "Tues", "Tuesday", "tuesday", "tue", "tues":
+		return "Tue"
+	case "Wed", "Wednesday", "wednesday", "wed":
+		return "Wed"
+	case "Thu", "Thur", "Thurs", "Thursday", "thursday", "thu", "thur", "thurs":
+		return "Thu"
+	case "Fri", "Friday", "friday", "fri":
+		return "Fri"
+	case "Sat", "Saturday", "saturday", "sat":
+		return "Sat"
+	case "Sun", "Sunday", "sunday", "sun":
+		return "Sun"
+	default:
+		return s
+	}
 }
 
 // Product operations

@@ -2,11 +2,13 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"pet-mgt/backend/internal/middleware"
 	"pet-mgt/backend/internal/store"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -57,8 +59,9 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 	}
 
 	// Verify user is client and owns the pet (unless admin)
-	if user.Role != "admin" {
-		if user.Role != "client" {
+	role := deriveRole(r.Context(), h.db, user)
+	if role != "admin" {
+		if role != "client" {
 			ErrorResponse(w, http.StatusForbidden, "Only clients can book appointments")
 			return
 		}
@@ -97,6 +100,29 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 	)
 	appointment.Notes = req.Notes
 
+	// Validate against availability and conflicts
+	dateOnly := req.AppointmentDate.Format("2006-01-02")
+	date, _ := time.ParseInLocation("2006-01-02", dateOnly, time.Local)
+	availableSlots, err := h.db.GetAvailableAppointmentSlots(r.Context(), req.VeterinarianID, date)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Failed to validate availability")
+		return
+	}
+
+	// Check that requested time aligns with an available slot start
+	requestedStart := req.AppointmentDate
+	matchFound := false
+	for _, s := range availableSlots {
+		if s.Available && s.StartTime.Equal(requestedStart) {
+			matchFound = true
+			break
+		}
+	}
+	if !matchFound {
+		ErrorResponse(w, http.StatusConflict, "Selected time is not available")
+		return
+	}
+
 	if err := h.db.CreateAppointment(r.Context(), appointment); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to create appointment")
 		return
@@ -117,7 +143,9 @@ func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Requ
 	var appointments []store.Appointment
 	var err error
 
-	switch user.Role {
+	role := deriveRole(r.Context(), h.db, user)
+
+	switch role {
 	case "client":
 		appointments, err = h.db.GetAppointmentsByClientID(r.Context(), user.Sub)
 	case "veterinarian":
@@ -175,8 +203,9 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Check permissions
-	if user.Role != "admin" {
-		if user.Role == "client" && appointment.ClientID != user.Sub {
+	role := deriveRole(r.Context(), h.db, user)
+	if role != "admin" {
+		if role == "client" && appointment.ClientID != user.Sub {
 			ErrorResponse(
 				w,
 				http.StatusForbidden,
@@ -184,7 +213,7 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 			)
 			return
 		}
-		if user.Role == "veterinarian" && appointment.VeterinarianID != user.Sub {
+		if role == "veterinarian" && appointment.VeterinarianID != user.Sub {
 			ErrorResponse(
 				w,
 				http.StatusForbidden,
@@ -221,11 +250,12 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 
 	// Check permissions
 	canUpdate := false
-	if user.Role == "admin" {
+	role := deriveRole(r.Context(), h.db, user)
+	if role == "admin" {
 		canUpdate = true
-	} else if user.Role == "client" && appointment.ClientID == user.Sub {
+	} else if role == "client" && appointment.ClientID == user.Sub {
 		canUpdate = true
-	} else if user.Role == "veterinarian" && appointment.VeterinarianID == user.Sub {
+	} else if role == "veterinarian" && appointment.VeterinarianID == user.Sub {
 		canUpdate = true
 	}
 
@@ -315,11 +345,12 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 
 	// Check permissions
 	canDelete := false
-	if user.Role == "admin" {
+	role := deriveRole(r.Context(), h.db, user)
+	if role == "admin" {
 		canDelete = true
-	} else if user.Role == "client" && appointment.ClientID == user.Sub {
+	} else if role == "client" && appointment.ClientID == user.Sub {
 		canDelete = true
-	} else if user.Role == "veterinarian" && appointment.VeterinarianID == user.Sub {
+	} else if role == "veterinarian" && appointment.VeterinarianID == user.Sub {
 		canDelete = true
 	}
 
@@ -359,7 +390,7 @@ func (h *AppointmentHandler) GetAvailableSlots(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	date, err := time.Parse("2006-01-02", dateStr)
+	date, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
 		return
@@ -377,6 +408,103 @@ func (h *AppointmentHandler) GetAvailableSlots(w http.ResponseWriter, r *http.Re
 	}
 
 	SuccessResponse(w, slots)
+}
+
+// SetAvailability allows a veterinarian to set or update their available working hours
+func (h *AppointmentHandler) SetAvailability(w http.ResponseWriter, r *http.Request) {
+	vetID := chi.URLParam(r, "id")
+	if vetID == "" {
+		ErrorResponse(w, http.StatusBadRequest, "Veterinarian ID is required")
+		return
+	}
+
+	// Get current user from context
+	user, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	// Only the veterinarian themselves or admin can update availability
+	role := deriveRole(r.Context(), h.db, user)
+	if role != "admin" && !(role == "veterinarian" && user.Sub == vetID) {
+		ErrorResponse(w, http.StatusForbidden, "Insufficient permissions")
+		return
+	}
+
+	var req struct {
+		AvailableHours []store.WorkingHours `json:"available_hours"`
+		ClinicAddress  string               `json:"clinic_address,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	vet, err := h.db.GetVeterinarianByID(r.Context(), vetID)
+	if err != nil {
+		ErrorResponse(w, http.StatusNotFound, "Veterinarian not found")
+		return
+	}
+
+	// Basic normalization: ensure day_of_week is capitalized consistently (e.g., Mon, Tue)
+	normalized := make([]store.WorkingHours, 0, len(req.AvailableHours))
+	for _, wh := range req.AvailableHours {
+		normalized = append(normalized, store.WorkingHours{
+			DayOfWeek: normalizeDay(wh.DayOfWeek),
+			Start:     wh.Start,
+			End:       wh.End,
+		})
+	}
+
+	vet.AvailableHours = normalized
+	if req.ClinicAddress != "" {
+		vet.ClinicAddress = req.ClinicAddress
+	}
+
+	if err := h.db.UpdateVeterinarian(r.Context(), vet); err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Failed to update availability")
+		return
+	}
+
+	SuccessResponse(w, vet)
+}
+
+// normalizeDay converts various inputs to a canonical 3-letter day (e.g., Monday -> Mon)
+func normalizeDay(input string) string {
+	switch strings.ToLower(input) {
+	case "monday", "mon":
+		return "Mon"
+	case "tuesday", "tue", "tues":
+		return "Tue"
+	case "wednesday", "wed":
+		return "Wed"
+	case "thursday", "thu", "thur", "thurs":
+		return "Thu"
+	case "friday", "fri":
+		return "Fri"
+	case "saturday", "sat":
+		return "Sat"
+	case "sunday", "sun":
+		return "Sun"
+	default:
+		return input
+	}
+}
+
+// deriveRole maps generic or missing roles from the JWT to concrete application roles
+// by querying the database. If the user's role is already a concrete role, it is returned as-is.
+func deriveRole(ctx context.Context, db store.Database, user *middleware.UserClaims) string {
+	role := user.Role
+	if role == "authenticated" || role == "user" || role == "" {
+		if c, err := db.GetClientByID(ctx, user.Sub); err == nil && c != nil && c.Role != "" {
+			return c.Role
+		}
+		if v, err := db.GetVeterinarianByID(ctx, user.Sub); err == nil && v != nil && v.Role != "" {
+			return v.Role
+		}
+	}
+	return role
 }
 
 // ListVeterinarians returns all veterinarians for appointment booking

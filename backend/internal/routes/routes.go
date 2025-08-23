@@ -94,6 +94,8 @@ func protectedRoutes(r chi.Router, h *handlers.Handlers) {
 	// Veterinarian and appointment availability routes
 	r.Get("/veterinarians", h.Appointment.ListVeterinarians)
 	r.Get("/veterinarians/{vetId}/availability", h.Appointment.GetAvailableSlots)
+	// Vet availability management (vet self or admin)
+	r.Post("/veterinarians/{id}/availability", h.Appointment.SetAvailability)
 
 	// Product routes
 	r.Post("/products", h.Product.CreateProduct)
