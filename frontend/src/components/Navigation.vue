@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
         <div class="flex items-center">
-          <RouterLink to="/" class="text-xl font-bold text-rich-black">
+          <RouterLink to="/" class="text-3xl font-bold text-rich-black">
             PetCare
           </RouterLink>
         </div>
@@ -13,7 +13,7 @@
           <RouterLink
             to="/dashboard"
             class="text-black hover:text-aquamarine transition-colors"
-            :class="{ 'text-aquamarine': $route.name === 'dashboard' }"
+            :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'dashboard' }"
           >
             Dashboard
           </RouterLink>
@@ -23,21 +23,21 @@
             <RouterLink
               to="/my-pets"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'my-pets' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'my-pets' }"
             >
               My Pets
             </RouterLink>
             <RouterLink
               to="/book-appointment"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'book-appointment' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'book-appointment' }"
             >
               Book Appointment
             </RouterLink>
             <RouterLink
               to="/browse-products"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'browse-products' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'browse-products' }"
             >
               Browse Products
             </RouterLink>
@@ -48,21 +48,21 @@
             <RouterLink
               to="/my-schedule"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'my-schedule' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'my-schedule' }"
             >
               My Schedule
             </RouterLink>
             <RouterLink
               to="/patients"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'patients' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'patients' }"
             >
               Patients
             </RouterLink>
             <RouterLink
               to="/manage-products"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'manage-products' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'manage-products' }"
             >
               Manage Products
             </RouterLink>
@@ -73,28 +73,28 @@
             <RouterLink
               to="/users"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'users' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'users' }"
             >
               Users
             </RouterLink>
             <RouterLink
               to="/all-pets"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'all-pets' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'all-pets' }"
             >
               All Pets
             </RouterLink>
             <RouterLink
               to="/all-appointments"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'all-appointments' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'all-appointments' }"
             >
               All Appointments
             </RouterLink>
             <RouterLink
               to="/analytics"
               class="text-black hover:text-aquamarine transition-colors"
-              :class="{ 'text-aquamarine': $route.name === 'analytics' }"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'analytics' }"
             >
               Analytics
             </RouterLink>
