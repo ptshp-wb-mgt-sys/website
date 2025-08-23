@@ -553,6 +553,9 @@ func (s *SupabaseService) GetAvailableAppointmentSlots(
 	vetID string,
 	date time.Time,
 ) ([]TimeSlot, error) {
+	// // Interpret working hours in clinic timezone (default Asia/Manila)
+	// loc, _ := time.LoadLocation("Asia/Manila")
+
 	// Fetch veterinarian working hours
 	vet, err := s.GetVeterinarianByID(ctx, vetID)
 	if err != nil {

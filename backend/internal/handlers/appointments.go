@@ -101,8 +101,8 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 	appointment.Notes = req.Notes
 
 	// Validate against availability and conflicts
-	dateOnly := req.AppointmentDate.Format("2006-01-02")
-	date, _ := time.ParseInLocation("2006-01-02", dateOnly, time.Local)
+	dateOnly := req.AppointmentDate.UTC().Format("2006-01-02")
+	date, _ := time.ParseInLocation("2006-01-02", dateOnly, time.UTC)
 	availableSlots, err := h.db.GetAvailableAppointmentSlots(r.Context(), req.VeterinarianID, date)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to validate availability")
@@ -390,7 +390,7 @@ func (h *AppointmentHandler) GetAvailableSlots(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	date, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
+	date, err := time.ParseInLocation("2006-01-02", dateStr, time.UTC)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
 		return
