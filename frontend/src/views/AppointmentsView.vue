@@ -16,8 +16,11 @@
     <template v-if="userStore.isClient">
       <!-- Quick Book Section -->
       <Card v-if="!showReschedule" class="p-6">
-        <h2 class="text-lg font-semibold text-rich-black mb-4">Book New Appointment</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-rich-black">Book New Appointment</h2>
+          <Button :disabled="!canFindSlots" @click="loadSlots">Find Available Times</Button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Select Pet</label>
             <select v-model="form.pet_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
@@ -27,27 +30,79 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Select Veterinarian</label>
-            <select v-model="form.veterinarian_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option value="" disabled>Select veterinarian</option>
-              <option v-for="vet in veterinarians" :key="vet.id" :value="vet.id">{{ vet.name }}</option>
-            </select>
+            <div ref="vetDropdownRef" class="relative">
+              <button type="button" @click="toggleVetOpen" class="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                <span class="truncate text-left">
+                  {{ selectedVetLabel || 'Select veterinarian' }}
+                </span>
+                <svg class="w-4 h-4 text-gray-500 ml-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
+                </svg>
+              </button>
+
+              <div v-if="vetOpen" class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                <div class="p-2 border-b border-gray-200 space-y-2">
+                  <input
+                    v-model="vetSearch"
+                    type="text"
+                    placeholder="Search by name or clinic"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <select v-model="vetLocation" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">All cities</option>
+                    <option v-for="loc in vetLocations" :key="loc" :value="loc">{{ loc }}</option>
+                  </select>
+                </div>
+                <ul class="max-h-64 overflow-auto py-1">
+                  <li
+                    v-for="vet in filteredVeterinarians"
+                    :key="vet.id"
+                    @click="selectVet(vet.id)"
+                    class="px-3 py-2 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+                  >
+                    <span class="truncate">{{ vet.name }}</span>
+                    <span v-if="vet.clinic_address" class="ml-2 text-xs text-gray-500 truncate">{{ vet.clinic_address }}</span>
+                  </li>
+                  <li v-if="filteredVeterinarians.length === 0" class="px-3 py-2 text-sm text-gray-600">No veterinarians found</li>
+                </ul>
+              </div>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Visit</label>
-            <select v-model="form.reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option value="" disabled>Select reason</option>
-              <option>Routine Checkup</option>
-              <option>Vaccination</option>
-              <option>Emergency</option>
-              <option>Follow-up</option>
-            </select>
+            <div class="space-y-2">
+              <select v-model="form.reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="" disabled>Select reason</option>
+                <option>Routine Checkup</option>
+                <option>Vaccination</option>
+                <option>Emergency</option>
+                <option>Follow-up</option>
+                <option>Illness</option>
+                <option>Injury</option>
+                <option>Dental Cleaning</option>
+                <option>Spay/Neuter</option>
+                <option>Lab Work</option>
+                <option>Behavior Consultation</option>
+                <option>Grooming</option>
+                <option>Medication Refill</option>
+                <option>Surgery Consultation</option>
+                <option value="other">Other</option>
+              </select>
+              <input
+                v-if="form.reason === 'other'"
+                v-model="customReason"
+                type="text"
+                placeholder="Type your reason"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+            <input v-model="date" type="date" :min="todayISODate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
           </div>
         </div>
-        <div class="mt-4 flex space-x-2">
-          <input v-model="date" type="date" :min="todayISODate" class="px-3 py-2 border border-gray-300 rounded-lg" />
-          <Button :disabled="!canFindSlots" @click="loadSlots">Find Available Times</Button>
-        </div>
-        <p v-if="uiError" class="text-sm text-red-600 mt-2">{{ uiError }}</p>
+        <p v-if="uiError" class="text-sm text-red-600 mt-3">{{ uiError }}</p>
         <div v-if="slots.length" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
           <Button v-for="s in slots" :key="s.start_time" variant="outline" :disabled="isSlotInPast(s)" @click="selectSlot(s)">
             {{ new Date(s.start_time).toLocaleTimeString() }}
@@ -346,11 +401,16 @@ const qrStore = useQRCodesStore()
 const showAvailability = ref(false)
 const showReschedule = ref(false)
 const rescheduleTarget = ref<string | null>(null)
-const veterinarians = ref<{ id: string; name: string }[]>([])
+const veterinarians = ref<{ id: string; name: string; clinic_address?: string }[]>([])
+const vetSearch = ref('')
+const vetLocation = ref('')
+const vetOpen = ref(false)
+const vetDropdownRef = ref<HTMLElement | null>(null)
 const slots = ref<TimeSlot[]>([])
 const selectedSlot = ref<TimeSlot | null>(null)
 const date = ref<string>('')
 const form = ref<CreateAppointmentRequest>({ veterinarian_id: '', pet_id: '', appointment_date: '', reason: '' })
+const customReason = ref('')
 const uiError = ref<string | null>(null)
 const triedLoadSlots = ref(false)
 const canFindSlots = computed(() => !!form.value.veterinarian_id && !!form.value.pet_id && !!form.value.reason && !!date.value)
@@ -370,7 +430,7 @@ onMounted(async () => {
     if (petsStore.pets.length === 0) await petsStore.fetchPets()
     await apptStore.fetchAppointments()
     const vets = await apptStore.listVeterinarians()
-    veterinarians.value = vets.map(v => ({ id: v.id, name: v.name }))
+    veterinarians.value = vets.map(v => ({ id: v.id, name: v.name, clinic_address: v.clinic_address }))
   }
   if (userStore.isVeterinarian || userStore.isAdmin) {
     // Load once per session unless nothing is cached yet
@@ -393,6 +453,27 @@ onMounted(async () => {
     }
   }
 })
+
+// Close custom dropdown on outside click
+function onClickOutside(event: MouseEvent) {
+  const target = event.target as Node
+  if (!vetDropdownRef.value) return
+  if (!vetDropdownRef.value.contains(target)) {
+    vetOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', onClickOutside)
+})
+
+// Cleanup listener
+watch(vetOpen, (open) => {
+  if (!open) return
+})
+
+onMounted(() => {})
+
 
 // Reflect profile availability updates to the local availability model
 watch(
@@ -449,6 +530,56 @@ const availabilityDays = computed(() => {
 const upcomingAppointments = computed(() => apptStore.upcomingAppointments)
 const pastAppointments = computed(() => apptStore.pastAppointments)
 const todaysAppointments = computed(() => apptStore.todaysAppointments)
+// Vet filters
+const filteredVeterinarians = computed(() => {
+  const q = vetSearch.value.trim().toLowerCase()
+  const loc = vetLocation.value
+  return veterinarians.value.filter(v => {
+    const matchesLoc = !loc || extractCity(v.clinic_address).toLowerCase() === loc.toLowerCase()
+    if (!q) return matchesLoc
+    const hay = `${v.name} ${(v.clinic_address || '')}`.toLowerCase()
+    return matchesLoc && hay.includes(q)
+  })
+})
+
+const vetLocations = computed(() => {
+  const set = new Set<string>()
+  for (const v of veterinarians.value) {
+    const city = extractCity(v.clinic_address)
+    if (city) set.add(city)
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b))
+})
+
+/**
+ * Pull out the city from a clinic address.
+ * We expect the city to be the SECOND comma-separated segment.
+ * Falls back to the first segment if there's only one.
+ */
+const extractCity = (address?: string): string => {
+  if (!address) return ''
+  const parts = address.split(',').map(p => p.trim()).filter(Boolean)
+  if (parts.length >= 2) return parts[1]
+  if (parts.length === 1) return parts[0]
+  return ''
+}
+
+const selectedVetLabel = computed(() => {
+  const id = form.value.veterinarian_id
+  if (!id) return ''
+  const vet = veterinarians.value.find(v => v.id === id)
+  if (!vet) return ''
+  return vet.clinic_address ? `${vet.name} — ${vet.clinic_address}` : vet.name
+})
+
+const toggleVetOpen = () => {
+  vetOpen.value = !vetOpen.value
+}
+
+const selectVet = (id: string) => {
+  form.value.veterinarian_id = id
+  vetOpen.value = false
+}
 // For veterinarians: small upcoming widget (next 5), exclude today's appointments
 const vetUpcoming = computed(() => {
   const t = new Date()
@@ -519,7 +650,7 @@ const book = async () => {
     veterinarian_id: form.value.veterinarian_id,
     pet_id: form.value.pet_id,
     appointment_date: form.value.appointment_date,
-    reason: form.value.reason,
+    reason: form.value.reason === 'other' ? customReason.value : form.value.reason,
   })
   // Reset UI
   form.value = { veterinarian_id: '', pet_id: '', appointment_date: '', reason: '' }
@@ -527,6 +658,7 @@ const book = async () => {
   slots.value = []
   selectedSlot.value = null
   triedLoadSlots.value = false
+  customReason.value = ''
 }
 
 // Cancellation
