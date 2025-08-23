@@ -59,7 +59,7 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
     error.value = null
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/pets/${encodeURIComponent(petId)}/medical-records`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/pets/${encodeURIComponent(petId)}/medical-records`, {
         headers: {
           Authorization: `Bearer ${authStore.session.access_token}`,
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
     error.value = null
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/pets/${encodeURIComponent(petId)}/medical-records`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/pets/${encodeURIComponent(petId)}/medical-records`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${authStore.session.access_token}`,
@@ -140,7 +140,7 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
     error.value = null
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/medical-records/${encodeURIComponent(recordId)}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/medical-records/${encodeURIComponent(recordId)}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${authStore.session.access_token}`,
@@ -188,7 +188,7 @@ export const useMedicalRecordsStore = defineStore('medicalRecords', () => {
     error.value = null
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/medical-records/${encodeURIComponent(recordId)}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/medical-records/${encodeURIComponent(recordId)}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${authStore.session.access_token}`,

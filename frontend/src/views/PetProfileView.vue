@@ -336,7 +336,7 @@ const loadOwnerName = async (ownerId?: string) => {
   try {
     const { useAuthStore } = await import('@/stores/auth')
     const auth = useAuthStore()
-    const res = await fetch(`http://localhost:3000/api/v1/owners/${encodeURIComponent(ownerId)}/label`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/owners/${encodeURIComponent(ownerId)}/label`, {
       headers: {
         'Authorization': `Bearer ${auth.session?.access_token || ''}`,
         'Content-Type': 'application/json',

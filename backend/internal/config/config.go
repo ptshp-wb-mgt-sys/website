@@ -25,9 +25,11 @@ type Config struct {
 
 // LoadCfg loads the configuration from the environment
 func LoadCfg() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("error loading .env file")
-	}
+	// if err := godotenv.Load(); err != nil {
+	//   return nil, fmt.Errorf("error loading .env file")
+	// }
+	// Load .env if present; ignore if missing (prod uses real env vars)
+	_ = godotenv.Load()
 
 	cfg := &Config{
 		Port: getEnv("PORT", "3000"),

@@ -1,0 +1,10 @@
+[_]
+schema-version = "0.2"
+
+[[io.buildpacks.build.env]]
+name = "BP_GO_TARGETS"
+value = "./cmd/api"
+
+[[io.buildpacks.build.env]]
+name = "BP_GO_VERSION"
+value = "1.24.*"

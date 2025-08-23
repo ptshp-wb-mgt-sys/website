@@ -295,7 +295,7 @@ async function applyCheckout(items: Array<{ productId: string; quantity: number 
 
     await Promise.all(
       Object.entries(vetToItems).map(async ([vetId, orderItems]) => {
-        const res = await fetch('http://localhost:3000/api/v1/orders', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/orders`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ veterinarian_id: vetId, items: orderItems }),

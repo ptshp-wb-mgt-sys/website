@@ -86,7 +86,7 @@ export const useUserStore = defineStore('user', () => {
     error.value = null
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/profile', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/profile`, {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
           'Content-Type': 'application/json'
@@ -127,7 +127,7 @@ export const useUserStore = defineStore('user', () => {
     if (!authStore.session?.access_token) return
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/users/${userId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
           'Content-Type': 'application/json'
@@ -158,7 +158,7 @@ export const useUserStore = defineStore('user', () => {
     error.value = null
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/users', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/users`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -196,7 +196,7 @@ export const useUserStore = defineStore('user', () => {
     error.value = null
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/users/${profile.value.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/users/${profile.value.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,

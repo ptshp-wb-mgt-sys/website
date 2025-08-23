@@ -69,7 +69,7 @@ export const useQRCodesStore = defineStore('qrcodes', () => {
     if (!auth.session?.access_token) {
       throw new Error('No authentication token')
     }
-    const res = await fetch(`http://localhost:3000/api/v1/pets/${petId}/qr-code`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/pets/${petId}/qr-code`, {
       headers: {
         Authorization: `Bearer ${auth.session.access_token}`,
         'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export const useQRCodesStore = defineStore('qrcodes', () => {
     if (!auth.session?.access_token) {
       throw new Error('No authentication token')
     }
-    const res = await fetch(`http://localhost:3000/api/v1/pets/${petId}/qr-code`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/pets/${petId}/qr-code`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${auth.session.access_token}`,

@@ -183,7 +183,7 @@ const fetchProfile = async () => {
   try {
     const token = route.params.publicUrl as string
     // The backend accepts both full path and token; we send token only
-    const res = await fetch(`http://localhost:3000/api/v1/public/pets/${encodeURIComponent(token)}`)
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/public/pets/${encodeURIComponent(token)}`)
     if (!res.ok) {
       const body = await res.json().catch(() => ({} as any))
       throw new Error(body?.error || body?.message || res.statusText)

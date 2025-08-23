@@ -87,7 +87,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     error.value = null
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/appointments', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/appointments`, {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
           'Content-Type': 'application/json',
@@ -122,7 +122,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     error.value = null
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/appointments', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/appointments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -160,7 +160,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     error.value = null
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/appointments/${encodeURIComponent(id)}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/appointments/${encodeURIComponent(id)}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -198,7 +198,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/appointments/${encodeURIComponent(id)}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/appointments/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -236,7 +236,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     const dateParam = `${y}-${m}-${d}`
 
     const response = await fetch(
-      `http://localhost:3000/api/v1/veterinarians/${encodeURIComponent(veterinarianId)}/availability?date=${encodeURIComponent(dateParam)}`,
+      `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/veterinarians/${encodeURIComponent(veterinarianId)}/availability?date=${encodeURIComponent(dateParam)}`,
       {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -260,7 +260,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
     }
 
     const response = await fetch(
-      `http://localhost:3000/api/v1/veterinarians?limit=${limit}&offset=${offset}`,
+      `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/veterinarians?limit=${limit}&offset=${offset}`,
       {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -283,7 +283,7 @@ export const useAppointmentsStore = defineStore('appointments', () => {
       throw new Error('No authentication token')
     }
 
-    const response = await fetch(`http://localhost:3000/api/v1/veterinarians/${encodeURIComponent(veterinarianId)}/availability`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/veterinarians/${encodeURIComponent(veterinarianId)}/availability`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authStore.session.access_token}`,

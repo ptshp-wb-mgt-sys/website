@@ -50,7 +50,7 @@ export const useOrdersStore = defineStore('orders', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await fetch('http://localhost:3000/api/v1/orders', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/orders`, {
         headers: {
           Authorization: `Bearer ${auth.session.access_token}`,
           'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export const useOrdersStore = defineStore('orders', () => {
   const fetchOrderItems = async (orderId: string) => {
     if (!auth.session?.access_token) throw new Error('No authentication token')
     if (orderItemsByOrderId.value[orderId]) return orderItemsByOrderId.value[orderId]
-    const res = await fetch(`http://localhost:3000/api/v1/orders/${encodeURIComponent(orderId)}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/orders/${encodeURIComponent(orderId)}`, {
       headers: {
         Authorization: `Bearer ${auth.session.access_token}`,
         'Content-Type': 'application/json',

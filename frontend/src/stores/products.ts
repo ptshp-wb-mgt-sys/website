@@ -44,7 +44,7 @@ export const useProductsStore = defineStore('products', () => {
       if (opts?.category) params.set('category', opts.category)
       if (opts?.search) params.set('search', opts.search)
       const qs = params.toString() ? `${base}?${params.toString()}` : base
-      const res = await fetch(`http://localhost:3000/api/v1${qs}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1${qs}`, {
         headers: {
           Authorization: `Bearer ${auth.session.access_token}`,
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ export const useProductsStore = defineStore('products', () => {
   /** Create a product (vet/admin). */
   const createProduct = async (payload: Partial<Product>) => {
     if (!auth.session?.access_token) throw new Error('No authentication token')
-    const res = await fetch('http://localhost:3000/api/v1/products', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/products`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${auth.session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -82,7 +82,7 @@ export const useProductsStore = defineStore('products', () => {
   /** Update a product by id (vet/admin). */
   const updateProduct = async (id: string, updates: Partial<Product>) => {
     if (!auth.session?.access_token) throw new Error('No authentication token')
-    const res = await fetch(`http://localhost:3000/api/v1/products/${encodeURIComponent(id)}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/products/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${auth.session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
@@ -98,7 +98,7 @@ export const useProductsStore = defineStore('products', () => {
   /** Soft delete (deactivate) product. */
   const deactivateProduct = async (id: string) => {
     if (!auth.session?.access_token) throw new Error('No authentication token')
-    const res = await fetch(`http://localhost:3000/api/v1/products/${encodeURIComponent(id)}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/products/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${auth.session.access_token}` },
     })
@@ -110,7 +110,7 @@ export const useProductsStore = defineStore('products', () => {
   /** Update product stock quantity. */
   const updateStock = async (id: string, quantity: number) => {
     if (!auth.session?.access_token) throw new Error('No authentication token')
-    const res = await fetch(`http://localhost:3000/api/v1/products/${encodeURIComponent(id)}/stock`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/products/${encodeURIComponent(id)}/stock`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${auth.session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ quantity }),

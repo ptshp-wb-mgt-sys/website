@@ -75,7 +75,7 @@ export const usePetsStore = defineStore('pets', () => {
         throw new Error('User ID not found')
       }
 
-      const response = await fetch(`http://localhost:3000/api/v1/clients/${userId}/pets`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/clients/${userId}/pets`, {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
           'Content-Type': 'application/json'
@@ -115,7 +115,7 @@ export const usePetsStore = defineStore('pets', () => {
     error.value = null
 
     try {
-      const response = await fetch('http://localhost:3000/api/v1/pets', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/pets`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -155,7 +155,7 @@ export const usePetsStore = defineStore('pets', () => {
     error.value = null
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/pets/${petId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/pets/${petId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -199,7 +199,7 @@ export const usePetsStore = defineStore('pets', () => {
     error.value = null
 
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/pets/${petId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/pets/${petId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -243,7 +243,7 @@ export const usePetsStore = defineStore('pets', () => {
         return cached.pet
       }
 
-      const response = await fetch(`http://localhost:3000/api/v1/pets/${petId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/pets/${petId}`, {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
           'Content-Type': 'application/json'
@@ -338,7 +338,7 @@ export const usePetsStore = defineStore('pets', () => {
     if (pending.length === 0) return
     for (const id of pending) {
       try {
-        const res = await fetch(`http://localhost:3000/api/v1/owners/${encodeURIComponent(id)}/label`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/owners/${encodeURIComponent(id)}/label`, {
           headers: {
             'Authorization': authStore.session?.access_token ? `Bearer ${authStore.session.access_token}` : '',
             'Content-Type': 'application/json',
