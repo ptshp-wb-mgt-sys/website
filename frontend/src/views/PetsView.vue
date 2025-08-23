@@ -200,10 +200,12 @@ import AddPetModal from '@/components/AddPetModal.vue'
 import EditPetModal from '@/components/EditPetModal.vue'
 import QRPreviewModal from '@/components/QRPreviewModal.vue'
 import { useQRCodesStore } from '@/stores/qrcodes'
+import { useAppointmentsStore } from '@/stores/appointments'
 
 const userStore = useUserStore()
 const petsStore = usePetsStore()
 const qrStore = useQRCodesStore()
+const apptStore = useAppointmentsStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -334,12 +336,14 @@ onMounted(async () => {
     await petsStore.fetchPets()
   }
   if (userStore.isVeterinarian || userStore.isAdmin) {
-    await loadVetPatients()
+    // Prefer store-cached vet patients; load if missing
+    if (petsStore.vetPatients.length === 0) {
+      await petsStore.loadVetPatients()
+    }
+    vetPets.value = petsStore.vetPatients
   }
 })
 
-import { useAppointmentsStore } from '@/stores/appointments'
-const apptStore = useAppointmentsStore()
 const vetPets = ref<Pet[]>([])
 
 /**
@@ -347,16 +351,8 @@ const vetPets = ref<Pet[]>([])
  * from the vet's appointment history.
  */
 const loadVetPatients = async () => {
-  await apptStore.fetchAppointments({ force: true })
-  const unique = Array.from(new Set(apptStore.appointments.map(a => a.pet_id)))
-  const loaded: Pet[] = []
-  for (const id of unique) {
-    try {
-      const p = await petsStore.getPet(id)
-      if (p) loaded.push(p)
-    } catch (_) {}
-  }
-  vetPets.value = loaded
+  await petsStore.loadVetPatients()
+  vetPets.value = petsStore.vetPatients
 }
 
 /**

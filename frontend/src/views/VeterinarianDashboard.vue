@@ -71,7 +71,7 @@
           <div v-if="todaysList.length === 0" class="text-sm text-gray-600">No appointments today.</div>
           <div v-for="appt in todaysList" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div class="space-y-1">
-              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} — {{ appt.reason }} • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></p>
+              <p class="font-medium text-rich-black">{{ new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} — {{ appt.reason }}<template v-if="hasPetLabel(appt.pet_id)"> • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></template></p>
               <p class="text-xs capitalize" :class="appt.status === 'confirmed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
             </div>
             <Button variant="ghost" size="sm" @click="goToPet(appt.pet_id)">Start Visit</Button>
@@ -87,7 +87,7 @@
         </div>
         <div class="space-y-3">
           <div v-if="recentPatients.length === 0" class="text-sm text-gray-600">No recent patients.</div>
-          <div v-for="p in recentPatients" :key="p.petId" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div v-for="p in recentPatientsWithNames" :key="p.petId" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div class="flex items-center space-x-3">
               <div class="w-10 h-10 bg-aquamarine-100 rounded-full flex items-center justify-center">
                 <Heart class="w-5 h-5 text-aquamarine" />
@@ -156,14 +156,30 @@ import Card from '@/components/ui/Card.vue'
 import { useAppointmentsStore } from '@/stores/appointments'
 import { useOrdersStore } from '@/stores/orders'
 import { useProductsStore } from '@/stores/products'
+import { usePetsStore } from '@/stores/pets'
 
 const router = useRouter()
 const apptStore = useAppointmentsStore()
 const ordersStore = useOrdersStore()
 const productsStore = useProductsStore()
+const petsStore = usePetsStore()
+const petLabels = ref<Record<string, string>>({})
 
 onMounted(async () => {
-  await apptStore.fetchAppointments({ force: true })
+  // Only fetch once unless empty
+  if (apptStore.appointments.length === 0) {
+    await apptStore.fetchAppointments()
+  }
+  // Best effort: hydrate labels from client-owned list and by-id cache
+  try { await petsStore.fetchPets() } catch (_) {}
+  try {
+    const ids = apptStore.appointments.map(a => a.pet_id)
+    await petsStore.warmPetLabels(ids)
+    ids.forEach(id => {
+      const label = petsStore.getPetLabelSync(id)
+      if (label) petLabels.value[id] = label
+    })
+  } catch (_) {}
   await ordersStore.fetchOrders({ force: true })
   // Ensure we have orders before aggregating sales
   await productsStore.fetchProducts({ force: true })
@@ -211,6 +227,14 @@ const recentPatients = computed(() => {
   return out
 })
 
+// Same list but with names resolved synchronously from store caches to avoid flicker
+const recentPatientsWithNames = computed(() => {
+  return recentPatients.value.map(p => ({
+    ...p,
+    name: petsStore.getPetLabelSync(p.petId).replace(/ \([^)]*\)$/,'') || p.name,
+  }))
+})
+
 // Product sales aggregate for the last 7 days
 const topSales = ref<Array<{ productId: string; name?: string; quantity: number; revenue: number }>>([])
 onMounted(async () => {
@@ -228,9 +252,31 @@ onMounted(async () => {
 })
 
 // Helpers
+/** Returns a friendly label for a pet, or empty string if unknown (no flicker). */
 function petLabel(petId: string): string {
-  // Minimal label; dashboard doesn't have pet store here, so just show id tail as placeholder
-  return 'Pet ' + String(petId).slice(0, 4)
+  const sync = petsStore.getPetLabelSync(petId)
+  return sync || petLabels.value[petId] || ''
+}
+
+/** Ensures labels exist for the given pet ids using the pets store TTL cache. */
+async function ensurePetLabelsFor(ids: string[]): Promise<void> {
+  const unique = Array.from(new Set(ids)).filter(id => !petLabels.value[id])
+  await Promise.all(unique.map(async (id) => {
+    try {
+      const p = await petsStore.getPet(id)
+      petLabels.value[id] = `${p.name} (${p.type})`
+    } catch (_) {
+      // keep empty to avoid placeholder flicker
+      petLabels.value[id] = ''
+    }
+  }))
+}
+
+/** True if we have a label ready to display for this pet id. */
+function hasPetLabel(petId: string): boolean {
+  // Resolve from any synchronous cache for instant render
+  if (petsStore.getPetLabelSync(petId)) return true
+  return !!petLabels.value[petId]
 }
 
 // Navigation helpers

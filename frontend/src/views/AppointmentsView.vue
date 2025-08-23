@@ -325,7 +325,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useAppointmentsStore, type CreateAppointmentRequest, type TimeSlot } from '@/stores/appointments'
 import { 
@@ -355,8 +355,15 @@ const uiError = ref<string | null>(null)
 const triedLoadSlots = ref(false)
 const canFindSlots = computed(() => !!form.value.veterinarian_id && !!form.value.pet_id && !!form.value.reason && !!date.value)
 
-// Availability editor model (hydrate from profile on mount)
-const availability = ref<{ day_of_week: string; start: string; end: string }[]>([])
+// Availability editor model seeded from profile to avoid initial flicker
+const initialHours = (userStore.isVeterinarian && (userStore.profile as any)?.available_hours)
+  ? ((userStore.profile as any).available_hours as Array<{ day_of_week: string; start: string; end: string }>)
+  : []
+const availability = ref<{ day_of_week: string; start: string; end: string }[]>(
+  Array.isArray(initialHours)
+    ? initialHours.map(h => ({ day_of_week: h.day_of_week, start: h.start, end: h.end }))
+    : [],
+)
 
 onMounted(async () => {
   if (userStore.isClient) {
@@ -366,7 +373,10 @@ onMounted(async () => {
     veterinarians.value = vets.map(v => ({ id: v.id, name: v.name }))
   }
   if (userStore.isVeterinarian || userStore.isAdmin) {
-    await apptStore.fetchAppointments({ force: true })
+    // Load once per session unless nothing is cached yet
+    if (apptStore.appointments.length === 0) {
+      await apptStore.fetchAppointments()
+    }
     // Load pets on demand for vet views when showing labels (best effort)
     try { await petsStore.fetchPets() } catch (_) {}
     // Also fetch labels for pets not owned by the vet
@@ -375,12 +385,25 @@ onMounted(async () => {
       await ensurePetLabelsFor(ids)
     } catch (_) {}
   }
-  // Hydrate availability from vet profile if available
-  if (userStore.isVeterinarian && (userStore.profile as any)?.available_hours) {
-    const hours = (userStore.profile as any).available_hours as Array<{ day_of_week: string; start: string; end: string }>
-    availability.value = Array.isArray(hours) ? hours.map(h => ({ day_of_week: h.day_of_week, start: h.start, end: h.end })) : []
+  // Sync with profile after mount as well
+  if (userStore.isVeterinarian) {
+    const hours = (userStore.profile as any)?.available_hours as Array<{ day_of_week: string; start: string; end: string }> | undefined
+    if (Array.isArray(hours)) {
+      availability.value = hours.map(h => ({ day_of_week: h.day_of_week, start: h.start, end: h.end }))
+    }
   }
 })
+
+// Reflect profile availability updates to the local availability model
+watch(
+  () => (userStore.profile as any)?.available_hours,
+  (hours) => {
+    if (!userStore.isVeterinarian) return
+    if (Array.isArray(hours)) {
+      availability.value = hours.map(h => ({ day_of_week: h.day_of_week, start: h.start, end: h.end }))
+    }
+  },
+)
 
 /**
  * Computed properties for dynamic content
@@ -450,20 +473,16 @@ const petLabels = ref<Record<string, string>>({})
 
 async function ensurePetLabelsFor(ids: string[]): Promise<void> {
   const unique = Array.from(new Set(ids)).filter(id => !petLabels.value[id])
-  await Promise.all(unique.map(async (id) => {
-    try {
-      const p = await petsStore.getPet(id)
-      petLabels.value[id] = `${p.name} (${p.type})`
-    } catch (_) {
-      petLabels.value[id] = 'Pet'
-    }
-  }))
+  await petsStore.warmPetLabels(unique)
+  unique.forEach(id => {
+    const label = petsStore.getPetLabelSync(id)
+    if (label) petLabels.value[id] = label
+  })
 }
 
 function petLabel(petId: string): string {
-  const local = petsStore.pets.find((pp: { id: string; name: string; type: string }) => pp.id === petId)
-  if (local) return `${local.name} (${local.type})`
-  return petLabels.value[petId] || 'Pet'
+  const sync = petsStore.getPetLabelSync(petId)
+  return sync || petLabels.value[petId] || ''
 }
 
 /**

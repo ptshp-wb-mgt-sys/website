@@ -37,6 +37,10 @@ export const usePetsStore = defineStore('pets', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const lastFetchedAt = ref<number | null>(null)
+  // Simple in-memory caches to speed up vet flows
+  const petByIdCache = ref<Record<string, { pet: Pet; fetchedAt: number }>>({})
+  const vetPatients = ref<Pet[]>([])
+  const vetPatientsFetchedAt = ref<number | null>(null)
 
   const authStore = useAuthStore()
 
@@ -217,14 +221,26 @@ export const usePetsStore = defineStore('pets', () => {
   }
 
   /**
-   * Get a pet by ID
+   * Get a pet by ID with a tiny TTL cache.
+   * Returns instantly from memory when available.
    */
-  const getPet = async (petId: string) => {
+  const getPet = async (petId: string, options?: { ttlMs?: number }) => {
     if (!authStore.session?.access_token) {
       throw new Error('No authentication token')
     }
 
     try {
+      // Try the client-owned list first
+      const fromList = pets.value.find(p => p.id === petId)
+      if (fromList) return fromList
+
+      // Serve from cache when fresh
+      const ttlMs = options?.ttlMs ?? 5 * 60 * 1000
+      const cached = petByIdCache.value[petId]
+      if (cached && Date.now() - cached.fetchedAt < ttlMs) {
+        return cached.pet
+      }
+
       const response = await fetch(`http://localhost:3000/api/v1/pets/${petId}`, {
         headers: {
           'Authorization': `Bearer ${authStore.session.access_token}`,
@@ -237,11 +253,67 @@ export const usePetsStore = defineStore('pets', () => {
       }
 
       const data = await response.json()
-      return data.data || data
+      const pet = (data.data || data) as Pet
+      petByIdCache.value[petId] = { pet, fetchedAt: Date.now() }
+      return pet
     } catch (err) {
       console.error('Error fetching pet:', err)
       throw err
     }
+  }
+
+  /**
+   * Build and cache a vet's patients list from appointments.
+   * Hydrates in parallel and caches for a short TTL.
+   */
+  const loadVetPatients = async (options?: { force?: boolean; ttlMs?: number }) => {
+    const force = options?.force === true
+    const ttlMs = options?.ttlMs ?? 5 * 60 * 1000
+    if (!force && vetPatients.value.length > 0 && vetPatientsFetchedAt.value && Date.now() - vetPatientsFetchedAt.value < ttlMs) {
+      return
+    }
+    const { useAppointmentsStore } = await import('./appointments')
+    const apptStore = useAppointmentsStore()
+    if (apptStore.appointments.length === 0) {
+      await apptStore.fetchAppointments()
+    }
+    const uniqueIds = Array.from(new Set(apptStore.appointments.map(a => a.pet_id)))
+    const loaded: Pet[] = []
+    await Promise.all(uniqueIds.map(async (id) => {
+      try {
+        const p = await getPet(id)
+        if (p) loaded.push(p)
+      } catch (_) {}
+    }))
+    vetPatients.value = loaded
+    vetPatientsFetchedAt.value = Date.now()
+  }
+
+  /**
+   * Synchronous label accessor for rendering without flicker.
+   * Falls back to empty string if unknown to avoid placeholders.
+   */
+  const getPetLabelSync = (petId: string): string => {
+    const fromList = pets.value.find(p => p.id === petId)
+    if (fromList) return `${fromList.name} (${fromList.type})`
+    const cached = petByIdCache.value[petId]?.pet
+    if (cached) return `${cached.name} (${cached.type})`
+    const cachedVet = vetPatients.value.find(p => p.id === petId)
+    if (cachedVet) return `${cachedVet.name} (${cachedVet.type})`
+    return ''
+  }
+
+  /**
+   * Warm up labels for a set of pet IDs in parallel, using by-id TTL cache.
+   */
+  const warmPetLabels = async (ids: string[]) => {
+    const unique = Array.from(new Set(ids)).filter(id => !petByIdCache.value[id])
+    await Promise.all(unique.map(async (id) => {
+      try {
+        const p = await getPet(id)
+        petByIdCache.value[id] = { pet: p, fetchedAt: Date.now() }
+      } catch (_) {}
+    }))
   }
 
   /**
@@ -251,6 +323,9 @@ export const usePetsStore = defineStore('pets', () => {
     pets.value = []
     error.value = null
     lastFetchedAt.value = null
+    petByIdCache.value = {}
+    vetPatients.value = []
+    vetPatientsFetchedAt.value = null
   }
 
   /**
@@ -268,6 +343,8 @@ export const usePetsStore = defineStore('pets', () => {
     loading,
     error,
     lastFetchedAt,
+    vetPatients,
+    vetPatientsFetchedAt,
     
     // Computed
     petsCount,
@@ -279,6 +356,9 @@ export const usePetsStore = defineStore('pets', () => {
     updatePet,
     deletePet,
     getPet,
+    getPetLabelSync,
+    warmPetLabels,
+    loadVetPatients,
     clearPets,
     initialize
   }

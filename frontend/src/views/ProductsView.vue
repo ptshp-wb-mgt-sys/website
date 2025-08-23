@@ -184,9 +184,20 @@ function onSearch(): void {
   productsStore.fetchProducts({ category: category.value || undefined, search: q || undefined, force: true })
 }
 
+// Make ordering deterministic so cards don't jump around. We'll sort by name ASC,
+// and fall back to created_at DESC when name is missing or equal.
 const filtered = computed(() => {
   const base = userStore.isVeterinarian ? productsStore.products : productsStore.activeProducts
-  return base.filter(p => (category.value ? p.category === category.value : true) && (search.value ? (p.name?.toLowerCase().includes(search.value.toLowerCase()) || p.description?.toLowerCase().includes(search.value.toLowerCase())) : true))
+  const list = base.filter(p => (category.value ? p.category === category.value : true) && (search.value ? (p.name?.toLowerCase().includes(search.value.toLowerCase()) || p.description?.toLowerCase().includes(search.value.toLowerCase())) : true))
+  return [...list].sort((a, b) => {
+    const an = (a.name || '').toLowerCase()
+    const bn = (b.name || '').toLowerCase()
+    if (an && bn && an !== bn) return an < bn ? -1 : 1
+    // tiebreaker: newest first
+    const at = new Date(a.created_at).getTime()
+    const bt = new Date(b.created_at).getTime()
+    return bt - at
+  })
 })
 
 /** Add a product to cart with a quantity of 1. */
@@ -238,19 +249,20 @@ async function toggleActive(p: Product): Promise<void> {
   }
 }
 
+// Load once and then rely on store TTL to avoid reshuffling on every tab switch
 onMounted(() => {
   if (userStore.isVeterinarian && userStore.profile) {
-    productsStore.fetchProducts({ veterinarianId: userStore.profile.id, force: true })
+    productsStore.fetchProducts({ veterinarianId: userStore.profile.id })
   } else {
-    productsStore.fetchProducts({ force: true })
+    productsStore.fetchProducts()
   }
 })
 
 watch(() => userStore.isVeterinarian, (isVet) => {
   if (isVet && userStore.profile) {
-    productsStore.fetchProducts({ veterinarianId: userStore.profile.id, force: true })
+    productsStore.fetchProducts({ veterinarianId: userStore.profile.id })
   } else {
-    productsStore.fetchProducts({ force: true })
+    productsStore.fetchProducts()
   }
 })
 
