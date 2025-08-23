@@ -100,6 +100,37 @@
             </RouterLink>
           </template>
 
+          <!-- Trailing: About + Icons (rightmost) -->
+          <div class="flex items-center space-x-4">
+            <RouterLink
+              to="/about"
+              class="text-black hover:text-aquamarine transition-colors"
+              :class="{ 'underline decoration-aquamarine decoration-2 underline-offset-8': $route.name === 'about' }"
+            >
+              About
+            </RouterLink>
+            <a
+              href="https://github.com/ptshp-wb-mgt-sys/website"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Project GitHub Repository"
+              title="Project GitHub Repository"
+              class="text-black hover:text-aquamarine transition-colors inline-flex items-center"
+            >
+              <Github class="w-5 h-5" />
+            </a>
+            <a
+              href="https://github.com/mrjxtr"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Developer (@mrjxtr)"
+              title="Developer (@mrjxtr)"
+              class="text-black hover:text-aquamarine transition-colors inline-flex items-center"
+            >
+              <Code2 class="w-5 h-5" />
+            </a>
+          </div>
+
           <!-- User Menu -->
           <div class="flex items-center space-x-4">
             <RouterLink
@@ -123,6 +154,27 @@
           <RouterLink to="/signup">
             <Button>Get Started</Button>
           </RouterLink>
+          <RouterLink to="/about" class="text-black hover:text-aquamarine transition-colors">About</RouterLink>
+          <a
+            href="https://github.com/ptshp-wb-mgt-sys/website"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Project GitHub Repository"
+            title="Project GitHub Repository"
+            class="text-black hover:text-aquamarine transition-colors inline-flex items-center"
+          >
+            <Github class="w-5 h-5" />
+          </a>
+          <a
+            href="https://github.com/mrjxtr"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Developer (@mrjxtr)"
+            title="Developer (@mrjxtr)"
+            class="text-black hover:text-aquamarine transition-colors inline-flex items-center"
+          >
+            <Code2 class="w-5 h-5" />
+          </a>
         </div>
       </div>
     </div>
@@ -136,6 +188,7 @@ import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
 import Button from '@/components/ui/Button.vue'
+import { Github, Code2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
