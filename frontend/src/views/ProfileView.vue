@@ -97,24 +97,80 @@
             </div>
           </div>
 
-          <div v-if="userStore.isClient">
-            <Label for="address">Address</Label>
-            <textarea
-              id="address"
-              v-model="editForm.address"
-              rows="3"
-              class="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aquamarine focus-visible:ring-offset-2"
-            />
+          <div v-if="userStore.isClient" class="space-y-2">
+            <Label>Address</Label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <Input
+                  id="address_line1"
+                  v-model="clientAddress.line1"
+                  placeholder="Street address"
+                  class="mt-1"
+                />
+              </div>
+              <Input
+                id="address_city"
+                v-model="clientAddress.city"
+                placeholder="City"
+                class="mt-1"
+              />
+              <Input
+                id="address_state"
+                v-model="clientAddress.state"
+                placeholder="State/Province"
+                class="mt-1"
+              />
+              <Input
+                id="address_postal"
+                v-model="clientAddress.postalCode"
+                placeholder="Postal code"
+                class="mt-1"
+              />
+              <Input
+                id="address_country"
+                v-model="clientAddress.country"
+                placeholder="Country"
+                class="mt-1"
+              />
+            </div>
           </div>
 
-          <div v-if="userStore.isVeterinarian">
-            <Label for="clinic_address">Clinic Address</Label>
-            <textarea
-              id="clinic_address"
-              v-model="editForm.clinic_address"
-              rows="3"
-              class="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aquamarine focus-visible:ring-offset-2"
-            />
+          <div v-if="userStore.isVeterinarian" class="space-y-2">
+            <Label>Clinic Address</Label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <Input
+                  id="clinic_address_line1"
+                  v-model="clinicAddress.line1"
+                  placeholder="Street address"
+                  class="mt-1"
+                />
+              </div>
+              <Input
+                id="clinic_address_city"
+                v-model="clinicAddress.city"
+                placeholder="City"
+                class="mt-1"
+              />
+              <Input
+                id="clinic_address_state"
+                v-model="clinicAddress.state"
+                placeholder="State/Province"
+                class="mt-1"
+              />
+              <Input
+                id="clinic_address_postal"
+                v-model="clinicAddress.postalCode"
+                placeholder="Postal code"
+                class="mt-1"
+              />
+              <Input
+                id="clinic_address_country"
+                v-model="clinicAddress.country"
+                placeholder="Country"
+                class="mt-1"
+              />
+            </div>
           </div>
 
           <div v-if="error" class="text-red-600 text-sm">
@@ -148,6 +204,32 @@ const editForm = ref({
   clinic_address: ''
 })
 
+// Structured address state for better UX
+const clientAddress = ref({ line1: '', city: '', state: '', postalCode: '', country: '' })
+const clinicAddress = ref({ line1: '', city: '', state: '', postalCode: '', country: '' })
+
+/**
+ * formatAddress builds a simple single-line address from parts.
+ */
+const formatAddress = (addr: { line1?: string; city?: string; state?: string; postalCode?: string; country?: string }) => {
+  const parts = [addr.line1, addr.city, addr.state, addr.postalCode, addr.country]
+  return parts.filter(Boolean).join(', ')
+}
+
+/**
+ * parseAddress splits a single string into basic parts. Best effort.
+ */
+const parseAddress = (value: string) => {
+  const parts = (value || '').split(',').map(p => p.trim()).filter(Boolean)
+  return {
+    line1: parts[0] || '',
+    city: parts[1] || '',
+    state: parts[2] || '',
+    postalCode: parts[3] || '',
+    country: parts[4] || ''
+  }
+}
+
 /**
  * Initialize edit form with current profile data
  */
@@ -160,6 +242,10 @@ const initEditForm = () => {
       address: userStore.profile.address || '',
       clinic_address: (userStore.profile as any).clinic_address || ''
     }
+
+    // hydrate structured address inputs
+    clientAddress.value = parseAddress(editForm.value.address)
+    clinicAddress.value = parseAddress(editForm.value.clinic_address)
   }
 }
 
@@ -197,9 +283,9 @@ const saveProfile = async () => {
     }
 
     if (userStore.isClient) {
-      updates.address = editForm.value.address
+      updates.address = formatAddress(clientAddress.value)
     } else if (userStore.isVeterinarian) {
-      updates.clinic_address = editForm.value.clinic_address
+      updates.clinic_address = formatAddress(clinicAddress.value)
     }
 
     await userStore.updateProfile(updates)

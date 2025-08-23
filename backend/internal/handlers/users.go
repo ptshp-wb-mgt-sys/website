@@ -49,11 +49,12 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Name    string `json:"name"`
-		Email   string `json:"email"`
-		Phone   string `json:"phone"`
-		Address string `json:"address"`
-		Role    string `json:"role"`
+		Name          string `json:"name"`
+		Email         string `json:"email"`
+		Phone         string `json:"phone"`
+		Address       string `json:"address"`
+		Role          string `json:"role"`
+		ClinicAddress string `json:"clinic_address"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -61,10 +62,10 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-		// Check if user already has a profile
+	// Check if user already has a profile
 	existingClient, clientErr := h.db.GetClientByID(r.Context(), user.Sub)
 	existingVet, vetErr := h.db.GetVeterinarianByID(r.Context(), user.Sub)
-	
+
 	// If user already has a profile, they can't create another one (unless they're admin)
 	if (clientErr == nil && existingClient != nil) || (vetErr == nil && existingVet != nil) {
 		if user.Role != "admin" {
@@ -91,11 +92,12 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	case "veterinarian":
 		vet := &store.Veterinarian{
-			ID:    user.Sub,
-			Name:  req.Name,
-			Email: req.Email,
-			Phone: req.Phone,
-			Role:  req.Role,
+			ID:            user.Sub,
+			Name:          req.Name,
+			Email:         req.Email,
+			Phone:         req.Phone,
+			ClinicAddress: req.ClinicAddress,
+			Role:          req.Role,
 		}
 		if err := h.db.CreateVeterinarian(r.Context(), vet); err != nil {
 			ErrorResponse(
@@ -168,10 +170,11 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Name    string `json:"name"`
-		Email   string `json:"email"`
-		Phone   string `json:"phone"`
-		Address string `json:"address"`
+		Name          string `json:"name"`
+		Email         string `json:"email"`
+		Phone         string `json:"phone"`
+		Address       string `json:"address"`
+		ClinicAddress string `json:"clinic_address"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -199,6 +202,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		vet.Name = req.Name
 		vet.Email = req.Email
 		vet.Phone = req.Phone
+		vet.ClinicAddress = req.ClinicAddress
 
 		if err := h.db.UpdateVeterinarian(r.Context(), vet); err != nil {
 			ErrorResponse(
