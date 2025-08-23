@@ -45,6 +45,11 @@ func (h *PetHandler) CreatePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If no owner_id specified, use the authenticated user's ID
+	if req.OwnerID == "" {
+		req.OwnerID = user.Sub
+	}
+
 	// Authorization check: clients can only create pets for themselves, admins can create for anyone
 	if user.Role == "client" && req.OwnerID != user.Sub {
 		ErrorResponse(
@@ -58,11 +63,6 @@ func (h *PetHandler) CreatePet(w http.ResponseWriter, r *http.Request) {
 	if user.Role == "veterinarian" {
 		ErrorResponse(w, http.StatusForbidden, "Veterinarians cannot create pets")
 		return
-	}
-
-	// If no owner_id specified, use the authenticated user's ID
-	if req.OwnerID == "" {
-		req.OwnerID = user.Sub
 	}
 
 	pet := store.NewPet(
