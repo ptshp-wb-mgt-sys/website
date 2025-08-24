@@ -553,8 +553,8 @@ func (s *SupabaseService) GetAvailableAppointmentSlots(
 	vetID string,
 	date time.Time,
 ) ([]TimeSlot, error) {
-	// // Interpret working hours in clinic timezone (default Asia/Manila)
-	// loc, _ := time.LoadLocation("Asia/Manila")
+	// Interpret working hours in clinic timezone (Asia/Singapore)
+	loc, _ := time.LoadLocation("Asia/Singapore")
 
 	// Fetch veterinarian working hours
 	vet, err := s.GetVeterinarianByID(ctx, vetID)
@@ -578,8 +578,8 @@ func (s *SupabaseService) GetAvailableAppointmentSlots(
 		if err1 != nil || err2 != nil {
 			continue
 		}
-		ws := time.Date(date.Year(), date.Month(), date.Day(), startParsed.Hour(), startParsed.Minute(), 0, 0, date.Location())
-		we := time.Date(date.Year(), date.Month(), date.Day(), endParsed.Hour(), endParsed.Minute(), 0, 0, date.Location())
+		ws := time.Date(date.Year(), date.Month(), date.Day(), startParsed.Hour(), startParsed.Minute(), 0, 0, loc)
+		we := time.Date(date.Year(), date.Month(), date.Day(), endParsed.Hour(), endParsed.Minute(), 0, 0, loc)
 		if we.After(ws) {
 			windows = append(windows, window{start: ws, end: we})
 		}
@@ -590,7 +590,7 @@ func (s *SupabaseService) GetAvailableAppointmentSlots(
 	}
 
 	// Fetch existing appointments for that day
-	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, loc)
 	endOfDay := startOfDay.Add(24 * time.Hour)
 
 	var appts []Appointment
