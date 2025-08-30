@@ -202,6 +202,7 @@ To create a modern, secure, and user-friendly platform that bridges the gap betw
 - `DELETE /api/v1/users/{id}` - Delete user profile
 - `GET /api/v1/users` - List users (admin only)
 - `GET /api/v1/profile` - Get current user profile
+- `GET /api/v1/owners/{id}/label` - Get minimal owner label
 
 ##### 3.7.2 Pet Management Endpoints
 
@@ -210,9 +211,12 @@ To create a modern, secure, and user-friendly platform that bridges the gap betw
 - `PUT /api/v1/pets/{id}` - Update pet
 - `DELETE /api/v1/pets/{id}` - Delete pet
 - `GET /api/v1/clients/{clientId}/pets` - Get pets by client
-- `GET /api/v1/pets/{id}/qr-code` - Generate/retrieve QR code for pet
-- `GET /api/v1/pets/public/{qrCode}` - Get public pet profile via QR code
-- `GET /api/v1/pets/{id}/public-profile` - Get pet's public profile data
+- `POST /api/v1/pets/{petId}/qr-code` - Generate QR code for pet
+- `GET /api/v1/pets/{petId}/qr-code` - Retrieve QR code for pet
+- `PUT /api/v1/pets/{petId}/qr-code` - Update QR code for pet
+- `DELETE /api/v1/pets/{petId}/qr-code` - Delete QR code for pet
+- `GET /api/v1/public/pets/{publicUrl}` - Public pet profile (via QR)
+- `GET /api/v1/pets/public/{publicUrl}` - Public pet profile (alias)
 
 ##### 3.7.3 Medical Records Endpoints
 
@@ -228,6 +232,7 @@ To create a modern, secure, and user-friendly platform that bridges the gap betw
 - `GET /api/v1/veterinarians/{id}/availability` - Get veterinarian availability
 - `POST /api/v1/appointments` - Book appointment
 - `GET /api/v1/appointments` - List appointments (filtered by user role)
+- `GET /api/v1/appointments/{id}` - Get appointment details
 - `PUT /api/v1/appointments/{id}` - Update appointment
 - `DELETE /api/v1/appointments/{id}` - Cancel appointment
 - `GET /api/v1/veterinarians` - List available veterinarians
@@ -239,10 +244,14 @@ To create a modern, secure, and user-friendly platform that bridges the gap betw
 - `GET /api/v1/products/{id}` - Get product details
 - `PUT /api/v1/products/{id}` - Update product (veterinarian only)
 - `DELETE /api/v1/products/{id}` - Delete product (veterinarian only)
+- `GET /api/v1/veterinarians/{vetId}/products` - List products by veterinarian
+- `PUT /api/v1/products/{id}/stock` - Update product stock (veterinarian only)
+- `POST /api/v1/products/checkout` - Checkout products (creates order)
 - `POST /api/v1/orders` - Create order
 - `GET /api/v1/orders` - List orders (filtered by user role)
 - `GET /api/v1/orders/{id}` - Get order details
 - `PUT /api/v1/orders/{id}/status` - Update order status
+- `DELETE /api/v1/orders/{id}` - Cancel order
 
 ### 4. Technical Requirements
 
@@ -270,14 +279,19 @@ To create a modern, secure, and user-friendly platform that bridges the gap betw
 
 ##### 4.1.3 Database Schema
 
-- **Clients Table**: Pet owner profiles
-- **Veterinarians Table**: Veterinarian profiles with availability
-- **Pets Table**: Pet records with owner association
-- **Medical Records Table**: Veterinary visit records
-- **Appointments Table**: Appointment scheduling and management
-- **Products Table**: Product catalog and inventory
-- **Orders Table**: Order management and tracking
-- **QR Codes Table**: QR code generation and tracking with encoded data
+The system uses the following tables in Supabase:
+
+- `clients` - Pet owner profiles
+- `veterinarians` - Veterinarian profiles and availability
+- `pets` - Pet records
+- `medical_records` - Veterinary visit records
+- `qr_codes` - Public QR profile metadata for pets
+- `appointments` - Appointments and status tracking
+- `products` - Catalog managed by veterinarians
+- `orders` - Order headers
+- `order_items` - Line items for orders
+
+See `database/schema/tables.sql` for the complete schema definition.
 
 #### 4.2 Security Requirements
 

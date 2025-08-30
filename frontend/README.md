@@ -1,6 +1,6 @@
-# frontend
+# Frontend (Vue 3 + TypeScript)
 
-This template should help get you started developing with Vue 3 in Vite.
+SPA for the Pet Management System: pets, appointments, QR public profiles, products, and orders.
 
 ## Recommended IDE Setup
 
@@ -36,4 +36,12 @@ npm run build
 
 ```sh
 npm run lint
+
+## Environment
+
+Set `VITE_API_URL` to point to the backend API (e.g., `http://localhost:3000`).
+
+## Docs
+
+See the repository `docs/` folder for methodology and diagrams used in the thesis.
 ```

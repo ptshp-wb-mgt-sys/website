@@ -7,6 +7,9 @@ A Go-based backend API for a comprehensive pet-shop and veterinary clinic manage
 - **User Management**: Support for Clients (pet owners), Veterinarians, and Admins
 - **Pet Management**: Complete CRUD operations for pet records
 - **Medical Records**: Veterinary visit tracking and medical history
+- **QR Public Profiles**: Public pet profile via QR code URL
+- **Appointments**: Owner booking and vet availability
+- **Products & Orders**: Simple catalog, checkout, and order tracking
 - **Role-Based Access Control**: Secure authorization based on user roles
 - **JWT Authentication**: Integration with Supabase authentication
 - **RESTful API**: Clean, consistent API design
@@ -254,6 +257,22 @@ Retrieves all pets for a specific client.
 
 **Authorization:** Clients can only access their own pets, vets and admins can access any client's pets.
 
+#### QR Code for Pet
+
+```bash
+POST /api/v1/pets/{petId}/qr-code
+GET  /api/v1/pets/{petId}/qr-code
+PUT  /api/v1/pets/{petId}/qr-code
+DELETE /api/v1/pets/{petId}/qr-code
+```
+
+Public access (no auth):
+
+```bash
+GET /api/v1/public/pets/{publicUrl}
+GET /api/v1/pets/public/{publicUrl}
+```
+
 ### Medical Records
 
 #### Create Medical Record
@@ -330,12 +349,45 @@ Deletes a medical record.
 
 **Authorization:** Veterinarians and admins can delete medical records.
 
+### Appointments
+
+```bash
+POST /api/v1/appointments
+GET  /api/v1/appointments
+GET  /api/v1/appointments/{id}
+PUT  /api/v1/appointments/{id}
+DELETE /api/v1/appointments/{id}
+
+GET  /api/v1/veterinarians
+GET  /api/v1/veterinarians/{id}/availability
+POST /api/v1/veterinarians/{id}/availability
+```
+
+### Products & Orders
+
+```bash
+POST   /api/v1/products
+GET    /api/v1/products
+GET    /api/v1/products/{id}
+PUT    /api/v1/products/{id}
+DELETE /api/v1/products/{id}
+GET    /api/v1/veterinarians/{vetId}/products
+PUT    /api/v1/products/{id}/stock
+POST   /api/v1/products/checkout
+
+POST   /api/v1/orders
+GET    /api/v1/orders
+GET    /api/v1/orders/{id}
+PUT    /api/v1/orders/{id}/status
+DELETE /api/v1/orders/{id}
+```
+
 ## Database Schema
 
 The system uses the following tables in Supabase:
 
 - `clients` - Pet owner profiles
-- `veterinarians` - Veterinarian profiles  
+- `veterinarians` - Veterinarian profiles
 - `pets` - Pet records
 - `medical_records` - Veterinary visit records
 
