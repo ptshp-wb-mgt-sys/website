@@ -52,8 +52,8 @@
             <ShoppingBag class="w-6 h-6 text-aquamarine" />
           </div>
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600">Recent Orders</p>
-            <p class="text-2xl font-bold text-rich-black">1</p>
+            <p class="text-sm font-medium text-gray-600">Orders (30 days)</p>
+            <p class="text-2xl font-bold text-rich-black">{{ recentOrdersCount }}</p>
           </div>
         </div>
       </Card>
@@ -179,6 +179,7 @@ import { useAppointmentsStore, type Appointment } from '@/stores/appointments'
 import { useMedicalRecordsStore, type MedicalRecord } from '@/stores/medicalRecords'
 import QRPreviewModal from '@/components/QRPreviewModal.vue'
 import { useQRCodesStore } from '@/stores/qrcodes'
+import { useOrdersStore } from '@/stores/orders'
 
 // Modal state
 const showAddPetModal = ref(false)
@@ -210,6 +211,7 @@ const appointmentsStore = useAppointmentsStore()
 const router = useRouter()
 const recordsStore = useMedicalRecordsStore()
 const qrStore = useQRCodesStore()
+const ordersStore = useOrdersStore()
 
 /**
  * Number of pets for stats card.
@@ -261,6 +263,10 @@ onMounted(async () => {
   }
   if (appointmentsStore.appointments.length === 0) {
     await appointmentsStore.fetchAppointments()
+  }
+  // Load orders for recent orders count
+  if (ordersStore.orders.length === 0) {
+    await ordersStore.fetchOrders()
   }
   // Preload medical records for each pet (best-effort)
   await Promise.all(petsStore.pets.map(p => recordsStore.fetchByPetId(p.id)))
@@ -324,4 +330,17 @@ const openQRModal = async (petId: string) => {
 const goToQr = async (petId: string) => {
   await openQRModal(petId)
 }
+
+/**
+ * Count of orders placed within the last 30 days.
+ * Uses local time and `created_at` from orders.
+ */
+const recentOrdersCount = computed(() => {
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+  const cutoffMs = Date.now() - THIRTY_DAYS_MS
+  return ordersStore.orders.filter(o => {
+    const createdMs = new Date(o.created_at).getTime()
+    return !Number.isNaN(createdMs) && createdMs >= cutoffMs
+  }).length
+})
 </script>
