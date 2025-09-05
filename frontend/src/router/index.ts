@@ -69,6 +69,12 @@ const router = createRouter({
       component: () => import('../views/ProductsView.vue'),
       meta: { requiresAuth: true, allowedRoles: ['client'] },
     },
+    {
+      path: '/orders',
+      name: 'order-history',
+      component: () => import('../views/OrdersView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['client'] },
+    },
 
     // Veterinarian Routes
     {

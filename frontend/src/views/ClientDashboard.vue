@@ -46,14 +46,13 @@
         </div>
       </Card>
 
-      <Card class="p-6">
+      <Card class="p-6 cursor-pointer group hover:bg-gray-50 transition" @click="goToOrderHistory">
         <div class="flex items-center">
           <div class="w-12 h-12 bg-aquamarine-100 rounded-lg flex items-center justify-center mr-4">
             <ShoppingBag class="w-6 h-6 text-aquamarine" />
           </div>
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600">Orders (30 days)</p>
-            <p class="text-2xl font-bold text-rich-black">{{ recentOrdersCount }}</p>
+            <p class="text-l font-bold text-rich-black flex items-center">View Order History <ChevronRight class="w-7 h-7 ml-2 transition-transform group-hover:translate-x-1" /></p>
           </div>
         </div>
       </Card>
@@ -169,7 +168,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { formatDateTimeMDYHM } from '@/lib/utils'
-import { Plus, Heart, Calendar, FileText, ShoppingBag, QrCode } from 'lucide-vue-next'
+import { Plus, Heart, Calendar, FileText, ShoppingBag, QrCode, ChevronRight } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import AddPetModal from '@/components/AddPetModal.vue'
@@ -179,7 +178,6 @@ import { useAppointmentsStore, type Appointment } from '@/stores/appointments'
 import { useMedicalRecordsStore, type MedicalRecord } from '@/stores/medicalRecords'
 import QRPreviewModal from '@/components/QRPreviewModal.vue'
 import { useQRCodesStore } from '@/stores/qrcodes'
-import { useOrdersStore } from '@/stores/orders'
 
 // Modal state
 const showAddPetModal = ref(false)
@@ -211,7 +209,6 @@ const appointmentsStore = useAppointmentsStore()
 const router = useRouter()
 const recordsStore = useMedicalRecordsStore()
 const qrStore = useQRCodesStore()
-const ordersStore = useOrdersStore()
 
 /**
  * Number of pets for stats card.
@@ -264,10 +261,6 @@ onMounted(async () => {
   if (appointmentsStore.appointments.length === 0) {
     await appointmentsStore.fetchAppointments()
   }
-  // Load orders for recent orders count
-  if (ordersStore.orders.length === 0) {
-    await ordersStore.fetchOrders()
-  }
   // Preload medical records for each pet (best-effort)
   await Promise.all(petsStore.pets.map(p => recordsStore.fetchByPetId(p.id)))
 })
@@ -303,6 +296,8 @@ const goToMyPets = () => router.push({ name: 'my-pets' })
 const goToAppointments = () => router.push({ name: 'book-appointment' })
 const goToProducts = () => router.push({ name: 'browse-products' })
 const goToPetProfile = (petId: string) => router.push({ name: 'pet-profile', params: { id: petId } })
+/** Navigate to the order history view. */
+const goToOrderHistory = () => router.push({ name: 'order-history' })
 
 // Small utils
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString()
@@ -331,16 +326,5 @@ const goToQr = async (petId: string) => {
   await openQRModal(petId)
 }
 
-/**
- * Count of orders placed within the last 30 days.
- * Uses local time and `created_at` from orders.
- */
-const recentOrdersCount = computed(() => {
-  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
-  const cutoffMs = Date.now() - THIRTY_DAYS_MS
-  return ordersStore.orders.filter(o => {
-    const createdMs = new Date(o.created_at).getTime()
-    return !Number.isNaN(createdMs) && createdMs >= cutoffMs
-  }).length
-})
+
 </script>
