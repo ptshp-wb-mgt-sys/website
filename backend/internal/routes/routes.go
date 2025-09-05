@@ -20,7 +20,7 @@ func SetupRouter(cfg *config.Config, db store.Database) *chi.Mux {
 	r.Use(chiMw.Heartbeat("/ping"))
 
 	// Initialize all handlers with database dependency
-	h := handlers.NewHandlers(db)
+	h := handlers.NewHandlers(cfg, db)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Public routes with their own middleware

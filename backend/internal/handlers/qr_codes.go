@@ -17,12 +17,13 @@ import (
 
 // QRCodeHandler handles QR code operations
 type QRCodeHandler struct {
-	db store.Database
+	db              store.Database
+	frontendBaseURL string
 }
 
 // NewQRCodeHandler creates a new QRCodeHandler
-func NewQRCodeHandler(db store.Database) *QRCodeHandler {
-	return &QRCodeHandler{db: db}
+func NewQRCodeHandler(db store.Database, frontendBaseURL string) *QRCodeHandler {
+	return &QRCodeHandler{db: db, frontendBaseURL: frontendBaseURL}
 }
 
 // GenerateQRCode generates a QR code for a pet
@@ -86,7 +87,11 @@ func (h *QRCodeHandler) GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate QR code image with plaintext payload
-	qrText := buildQRCodeText(pet, owner, getBaseURL(r), publicURL)
+	linkBase := h.frontendBaseURL
+	if linkBase == "" {
+		linkBase = getBaseURL(r)
+	}
+	qrText := buildQRCodeText(pet, owner, linkBase, publicURL)
 	qrCodeBytes, err := qrcode.Encode(qrText, qrcode.Medium, 256)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to generate QR code image")
@@ -304,9 +309,9 @@ func getBaseURL(r *http.Request) string {
 
 // buildQRCodeText builds the human-readable text embedded in the QR code.
 // It includes pet and owner info plus a tappable public profile link.
-func buildQRCodeText(pet *store.Pet, owner *store.Client, baseURL, publicURL string) string {
+func buildQRCodeText(pet *store.Pet, owner *store.Client, linkBase, publicURL string) string {
 	// Keep this simple and scanner-friendly. Newlines render as separate lines in most scanner apps.
-	profileLink := fmt.Sprintf("%s%s", baseURL, publicURL)
+	profileLink := strings.TrimSuffix(linkBase, "/") + "/" + strings.TrimPrefix(publicURL, "/")
 	return fmt.Sprintf(
 		"Pet: %s\nOwner: %s\nPhone: %s\nAddress: %s\nProfile: %s",
 		pet.Name,

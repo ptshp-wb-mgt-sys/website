@@ -1,7 +1,10 @@
 // Package handlers contains HTTP handlers for the application
 package handlers
 
-import "pet-mgt/backend/internal/store"
+import (
+	"pet-mgt/backend/internal/config"
+	"pet-mgt/backend/internal/store"
+)
 
 // Handlers contains all HTTP handlers for the application
 type Handlers struct {
@@ -15,12 +18,12 @@ type Handlers struct {
 }
 
 // NewHandlers creates a new Handlers instance with all handler dependencies
-func NewHandlers(db store.Database) *Handlers {
+func NewHandlers(cfg *config.Config, db store.Database) *Handlers {
 	return &Handlers{
 		User:          NewUserHandler(db),
 		Pet:           NewPetHandler(db),
 		MedicalRecord: NewMedicalRecordHandler(db),
-		QRCode:        NewQRCodeHandler(db),
+		QRCode:        NewQRCodeHandler(db, cfg.FrontendURL),
 		Appointment:   NewAppointmentHandler(db),
 		Product:       NewProductHandler(db),
 		Order:         NewOrderHandler(db),
