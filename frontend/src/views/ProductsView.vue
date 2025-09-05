@@ -11,6 +11,7 @@
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-2 mb-2 items-center">
+      <Button v-if="userStore.isVeterinarian" :variant="mineOnly ? 'secondary' : 'ghost'" size="sm" @click="toggleMine">{{ mineOnly ? 'My Products ✔️' : 'My Products ❌' }}</Button>
       <Button :variant="category === '' ? 'secondary' : 'ghost'" size="sm" @click="setCategory('')">All</Button>
       <Button :variant="category === 'Food' ? 'secondary' : 'ghost'" size="sm" @click="setCategory('Food')">Food</Button>
       <Button :variant="category === 'Medicine' ? 'secondary' : 'ghost'" size="sm" @click="setCategory('Medicine')">Medicine</Button>
@@ -150,6 +151,8 @@ const authStore = useAuthStore()
 const category = ref('')
 const search = ref('')
 const openCart = ref(false)
+// When true, vets only see their own products; toggles global vs mine scope
+const mineOnly = ref(false)
 
 const showModal = ref(false)
 const editing = ref<Product | null>(null)
@@ -175,20 +178,49 @@ function onQtyInput(id: string, evt: Event): void {
 /** Update active category filter and refresh from API. */
 function setCategory(cat: string): void {
   category.value = cat
-  productsStore.fetchProducts({ category: cat || undefined, force: true })
+  const opts: { veterinarianId?: string; force: boolean; category?: string; search?: string } = { force: true }
+  if (mineOnly.value && userStore.isVeterinarian && userStore.profile) {
+    opts.veterinarianId = userStore.profile.id
+  }
+  if (cat) opts.category = cat
+  const q = search.value.trim()
+  if (q) opts.search = q
+  productsStore.fetchProducts(opts)
 }
 
 /** Sync server-side search with a light debounce (handled by browser input). */
 function onSearch(): void {
   const q = search.value.trim()
-  productsStore.fetchProducts({ category: category.value || undefined, search: q || undefined, force: true })
+  const opts: { veterinarianId?: string; force: boolean; category?: string; search?: string } = { force: true }
+  if (mineOnly.value && userStore.isVeterinarian && userStore.profile) {
+    opts.veterinarianId = userStore.profile.id
+  }
+  if (category.value) opts.category = category.value
+  if (q) opts.search = q
+  productsStore.fetchProducts(opts)
+}
+
+/** Toggle scope: when on, only the logged-in vet's products are shown. */
+function toggleMine(): void {
+  mineOnly.value = !mineOnly.value
+  const opts: { veterinarianId?: string; force: boolean; category?: string; search?: string } = { force: true }
+  if (mineOnly.value && userStore.isVeterinarian && userStore.profile) {
+    opts.veterinarianId = userStore.profile.id
+  }
+  if (category.value) opts.category = category.value
+  const q = search.value.trim()
+  if (q) opts.search = q
+  productsStore.fetchProducts(opts)
 }
 
 // Make ordering deterministic so cards don't jump around. We'll sort by name ASC,
 // and fall back to created_at DESC when name is missing or equal.
 const filtered = computed(() => {
   const base = userStore.isVeterinarian ? productsStore.products : productsStore.activeProducts
-  const list = base.filter(p => (category.value ? p.category === category.value : true) && (search.value ? (p.name?.toLowerCase().includes(search.value.toLowerCase()) || p.description?.toLowerCase().includes(search.value.toLowerCase())) : true))
+  const scoped = (mineOnly.value && userStore.isVeterinarian && userStore.profile)
+    ? base.filter(p => p.veterinarian_id === userStore.profile!.id)
+    : base
+  const list = scoped.filter(p => (category.value ? p.category === category.value : true) && (search.value ? (p.name?.toLowerCase().includes(search.value.toLowerCase()) || p.description?.toLowerCase().includes(search.value.toLowerCase())) : true))
   return [...list].sort((a, b) => {
     const an = (a.name || '').toLowerCase()
     const bn = (b.name || '').toLowerCase()
@@ -236,7 +268,7 @@ async function saveProduct(): Promise<void> {
     }
     // Force-refresh list so newly saved item shows up immediately
     const opts: { veterinarianId?: string; force: boolean; category?: string; search?: string } = { force: true }
-    if (userStore.isVeterinarian && userStore.profile) {
+    if (mineOnly.value && userStore.isVeterinarian && userStore.profile) {
       opts.veterinarianId = userStore.profile.id
     }
     if (category.value) opts.category = category.value
@@ -261,17 +293,21 @@ async function toggleActive(p: Product): Promise<void> {
 // Load once and then rely on store TTL to avoid reshuffling on every tab switch
 onMounted(() => {
   if (userStore.isVeterinarian && userStore.profile) {
-    productsStore.fetchProducts({ veterinarianId: userStore.profile.id })
+    mineOnly.value = true
+    productsStore.fetchProducts({ veterinarianId: userStore.profile.id, force: true })
   } else {
-    productsStore.fetchProducts()
+    mineOnly.value = false
+    productsStore.fetchProducts({ force: true })
   }
 })
 
 watch(() => userStore.isVeterinarian, (isVet) => {
   if (isVet && userStore.profile) {
-    productsStore.fetchProducts({ veterinarianId: userStore.profile.id })
+    mineOnly.value = true
+    productsStore.fetchProducts({ veterinarianId: userStore.profile.id, force: true })
   } else {
-    productsStore.fetchProducts()
+    mineOnly.value = false
+    productsStore.fetchProducts({ force: true })
   }
 })
 
