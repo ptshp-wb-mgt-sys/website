@@ -288,8 +288,8 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	SuccessResponse(w, users)
 }
 
-// GetOwnerLabel returns a tiny public-ish slice of a client profile.
-// Vets and admins can hit this to show owner names on patient cards.
+// GetOwnerLabel returns a small slice of a client profile for display.
+// Vets and admins can hit this to show owner details on sales/orders.
 func (h *UserHandler) GetOwnerLabel(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
@@ -315,10 +315,48 @@ func (h *UserHandler) GetOwnerLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Keep it minimal for this use case
+	// Minimal but useful fields
 	JSONResponse(w, http.StatusOK, map[string]any{
-		"id":    client.ID,
-		"name":  client.Name,
-		"email": client.Email,
+		"id":      client.ID,
+		"name":    client.Name,
+		"email":   client.Email,
+		"phone":   client.Phone,
+		"address": client.Address,
+	})
+}
+
+// GetVeterinarianLabel returns a small slice of a veterinarian profile.
+// Used by clients to display seller information for orders.
+func (h *UserHandler) GetVeterinarianLabel(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "User not found in context")
+		return
+	}
+
+	vetID := chi.URLParam(r, "id")
+	if vetID == "" {
+		ErrorResponse(w, http.StatusBadRequest, "Veterinarian ID is required")
+		return
+	}
+
+	// Any authenticated role can fetch a vet label for display
+	if user.Role != "client" && user.Role != "veterinarian" && user.Role != "admin" {
+		ErrorResponse(w, http.StatusForbidden, "Insufficient permissions")
+		return
+	}
+
+	vet, err := h.db.GetVeterinarianByID(r.Context(), vetID)
+	if err != nil || vet == nil {
+		ErrorResponse(w, http.StatusNotFound, "Veterinarian not found")
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, map[string]any{
+		"id":             vet.ID,
+		"name":           vet.Name,
+		"email":          vet.Email,
+		"phone":          vet.Phone,
+		"clinic_address": vet.ClinicAddress,
 	})
 }

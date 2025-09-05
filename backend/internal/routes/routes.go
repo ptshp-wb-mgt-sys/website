@@ -61,8 +61,9 @@ func protectedRoutes(r chi.Router, h *handlers.Handlers) {
 	r.Post("/users", h.User.CreateUser)
 	r.Get("/users", h.User.ListUsers)
 	r.Get("/users/{id}", h.User.GetUser)
-	// Minimal client label for display; vets/admins allowed
+	// Client and veterinarian labels for display
 	r.Get("/owners/{id}/label", h.User.GetOwnerLabel)
+	r.Get("/veterinarians/{id}/label", h.User.GetVeterinarianLabel)
 	r.Put("/users/{id}", h.User.UpdateUser)
 	r.Delete("/users/{id}", h.User.DeleteUser)
 

@@ -95,6 +95,12 @@ const router = createRouter({
       component: () => import('../views/ProductsView.vue'),
       meta: { requiresAuth: true, allowedRoles: ['veterinarian'] },
     },
+    {
+      path: '/sales',
+      name: 'sales-history',
+      component: () => import('../views/SalesHistoryView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['veterinarian'] },
+    },
 
     // Admin Routes
     {

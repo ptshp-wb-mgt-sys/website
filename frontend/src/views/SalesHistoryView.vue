@@ -2,8 +2,8 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-rich-black">Order History</h1>
-        <p class="text-gray-600 mt-1">Your orders over time</p>
+        <h1 class="text-3xl font-bold text-rich-black">Sales History</h1>
+        <p class="text-gray-600 mt-1">Your orders received over time</p>
       </div>
     </div>
 
@@ -28,7 +28,7 @@
         </div>
       </div>
       <div class="flex items-center justify-end mb-2">
-        <span class="text-sm text-gray-600">{{ orderedRecent.length }} orders • {{ formatMoney(recentRevenue) }}</span>
+        <span class="text-sm text-gray-600">{{ ordersCount }} orders • {{ formatPHP(totalRevenue) }}</span>
       </div>
 
       <div class="space-y-4">
@@ -40,16 +40,21 @@
           <div class="px-4 py-3 flex items-center justify-between bg-gray-50 rounded-t-lg">
             <div>
               <p class="font-medium text-rich-black">Order #{{ shortId(o.id) }}</p>
-              <p class="text-xs text-gray-600">{{ formatDate(o.created_at) }} • Seller: {{ sellerNameById[o.veterinarian_id] || 'Veterinarian' }} • Status: {{ o.status }} • Payment: {{ o.payment_status }}</p>
+              <p class="text-xs text-gray-600">{{ formatDate(o.created_at) }} • Buyer: {{ ownerLabelById[o.client_id]?.name || 'Client' }} • Status: {{ o.status }} • Payment: {{ o.payment_status }}</p>
             </div>
             <div class="text-right">
               <p class="font-semibold text-rich-black">
                 <span class="text-sm text-gray-600 mr-2">Total</span>
-                <span class="text-2xl">{{ formatMoney(o.total_amount) }}</span>
+                <span class="text-2xl">{{ formatPHP(o.total_amount) }}</span>
               </p>
             </div>
           </div>
           <div class="px-4 py-3 divide-y">
+            <div class="py-2 text-xs text-gray-700 space-y-1">
+              <p v-if="ownerLabelById[o.client_id]?.email">Email: {{ ownerLabelById[o.client_id]?.email }}</p>
+              <p v-if="ownerLabelById[o.client_id]?.phone">Phone: {{ ownerLabelById[o.client_id]?.phone }}</p>
+              <p v-if="ownerLabelById[o.client_id]?.address">Address: {{ ownerLabelById[o.client_id]?.address }}</p>
+            </div>
             <div
               v-for="it in (itemsByOrderId[o.id] || [])"
               :key="it.id"
@@ -57,10 +62,10 @@
             >
               <div class="truncate pr-4">
                 <p class="text-sm text-rich-black truncate">{{ productNameById[it.product_id] || it.product_id }}</p>
-                <p class="text-xs text-gray-600">Qty {{ it.quantity }} × {{ formatMoney(it.unit_price) }}</p>
+                <p class="text-xs text-gray-600">Qty {{ it.quantity }} × {{ formatPHP(it.unit_price) }}</p>
               </div>
               <div class="text-right">
-                <p class="text-sm font-medium">{{ formatMoney(it.total_price) }}</p>
+                <p class="text-sm font-medium">{{ formatPHP(it.total_price) }}</p>
               </div>
             </div>
             <div v-if="(itemsByOrderId[o.id] || []).length === 0" class="text-sm text-gray-600 py-2">No items loaded.</div>
@@ -68,7 +73,7 @@
           </div>
         </div>
 
-        <div v-if="orderedRecent.length === 0" class="text-sm text-gray-600 py-2">No orders in the last 30 days.</div>
+        <div v-if="orderedRecent.length === 0" class="text-sm text-gray-600 py-2">No sales in the last 30 days.</div>
       </div>
     </Card>
   </div>
@@ -81,6 +86,7 @@ import Button from '@/components/ui/Button.vue'
 import { useOrdersStore } from '@/stores/orders'
 import { useProductsStore } from '@/stores/products'
 import { useAuthStore } from '@/stores/auth'
+import { formatPHP } from '@/lib/utils'
 
 const ordersStore = useOrdersStore()
 const productsStore = useProductsStore()
@@ -88,30 +94,16 @@ const auth = useAuthStore()
 
 const itemsByOrderId = ref<Record<string, import('@/stores/orders').OrderItem[]>>({})
 const productNameById = ref<Record<string, string>>({})
-const sellerNameById = ref<Record<string, string>>({})
+const ownerLabelById = ref<Record<string, { name: string; email?: string; phone?: string; address?: string }>>({})
 
-/**
- * Ensure we have orders loaded to display history.
- */
+/** Load orders then hydrate items, product names, and buyer labels. */
 onMounted(async () => {
-  if (ordersStore.orders.length === 0) {
-    await ordersStore.fetchOrders()
-  }
-  // Preload items for recent orders and resolve product and seller names.
-  await preloadRecentOrderDetails()
+  await ordersStore.fetchOrders({ force: true })
+  await preloadOrderDetails()
 })
 
-/** Selected range for filtering; default to 7 days. */
+/** Selected range; default 7 days. Uses separate month/year controls. */
 const range = ref<{ type: '7' | '30' | 'all' | 'month'; monthIndex: number | null; year: number | null }>({ type: '7', monthIndex: null, year: null })
-
-/** Quick set range (7/30/all). */
-const setQuickRange = (type: '7' | '30' | 'all') => { range.value = { type, monthIndex: null, year: null } }
-
-/** When both month and year are set, switch to month range. */
-const onMonthYearChange = () => { if (range.value.monthIndex != null && range.value.year != null) range.value.type = 'month' }
-
-/** Clear the month filter and revert to 7 days. */
-const clearMonthRange = () => { range.value = { type: '7', monthIndex: null, year: null } }
 
 /** Friendly label for the current range. */
 const rangeLabel = computed(() => {
@@ -123,9 +115,16 @@ const rangeLabel = computed(() => {
   return 'All time'
 })
 
+/** Quick set 7/30/all; clears month. */
+const setQuickRange = (type: '7' | '30' | 'all') => { range.value = { type, monthIndex: null, year: null } }
 /**
- * Orders filtered by the selected range.
+ * When either month or year changes, switch to month mode when both are set.
  */
+const onMonthYearChange = () => { if (range.value.monthIndex != null && range.value.year != null) range.value.type = 'month' }
+/** Clear month/year selection and revert to 7 days. */
+const clearMonthRange = () => { range.value = { type: '7', monthIndex: null, year: null } }
+
+/** Orders filtered by range (incoming sales for this vet). */
 const recentOrders = computed(() => {
   const now = Date.now()
   if (range.value.type === 'month' && range.value.monthIndex != null && range.value.year != null) {
@@ -133,43 +132,30 @@ const recentOrders = computed(() => {
     const end = new Date(range.value.year, range.value.monthIndex + 1, 1)
     return ordersStore.orders.filter(o => {
       const t = new Date(o.created_at).getTime()
-      return t >= start.getTime() && t < end.getTime()
+      return t >= start.getTime() && t < end.getTime() && o.status !== 'cancelled'
     })
   }
-  const cutoffMs = range.value.type === '7' ? now - 7 * 24 * 60 * 60 * 1000
+  const cutoff = range.value.type === '7' ? now - 7 * 24 * 60 * 60 * 1000
     : range.value.type === '30' ? now - 30 * 24 * 60 * 60 * 1000
     : -Infinity
-  return ordersStore.orders.filter(o => new Date(o.created_at).getTime() >= cutoffMs)
+  return ordersStore.orders.filter(o => new Date(o.created_at).getTime() >= cutoff && o.status !== 'cancelled')
 })
 
-/**
- * Recent orders sorted by most recent first.
- */
-const orderedRecent = computed(() =>
-  [...recentOrders.value].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-)
+const orderedRecent = computed(() => [...recentOrders.value].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+const ordersCount = computed(() => recentOrders.value.length)
+const totalRevenue = computed(() => recentOrders.value.reduce((s, o) => s + (o.total_amount || 0), 0))
 
-/**
- * Total revenue for recent orders (30 days).
- */
-const recentRevenue = computed(() => recentOrders.value.reduce((sum, o) => sum + (o.total_amount || 0), 0))
-
-/**
- * Format date into a compact readable label.
- */
+/** Short id helper. */
+const shortId = (id: string) => id.slice(0, 8)
+/** Format date helper. */
 const formatDate = (iso: string) => new Date(iso).toLocaleString()
 
-/**
- * Format number as currency. Keep it chill.
- */
-const formatMoney = (amount: number) => `$${(amount ?? 0).toFixed(2)}`
+/** Month names for month-year filter dropdown. */
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 /**
- * Shorten IDs for display.
+ * Available years based on existing orders; falls back to current year.
  */
-const shortId = (id: string) => id.slice(0, 8)
-/** Month names and derived years for the dropdowns. */
-const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const availableYears = computed(() => {
   const set = new Set<number>()
   for (const o of ordersStore.orders) {
@@ -182,81 +168,75 @@ const availableYears = computed(() => {
 })
 
 /**
- * Preload items for all recent orders and resolve product/seller names.
+ * Preload items for each order and resolve product names and buyer labels.
  */
-const preloadRecentOrderDetails = async () => {
-  const uniqueProductIds = new Set<string>()
-  const vetIds = new Set<string>()
+const preloadOrderDetails = async () => {
+  const productIds = new Set<string>()
+  const ownerIds = new Set<string>()
   for (const o of recentOrders.value) {
     try {
       const items = await ordersStore.fetchOrderItems(o.id)
       itemsByOrderId.value[o.id] = items
-      for (const it of items) uniqueProductIds.add(it.product_id)
-      vetIds.add(o.veterinarian_id)
+      items.forEach(it => productIds.add(it.product_id))
+      ownerIds.add(o.client_id)
     } catch (_) {}
   }
-  // Seed names from any products already in store
-  for (const p of productsStore.products) {
-    productNameById.value[p.id] = p.name
-  }
-  // Fetch missing product names
+  // Seed product names from products store
+  for (const p of productsStore.products) productNameById.value[p.id] = p.name
+  // Fetch any missing product names
   await Promise.all(
-    Array.from(uniqueProductIds)
-      .filter(pid => !productNameById.value[pid])
-      .map(pid => ensureProductName(pid)),
+    Array.from(productIds).filter(id => !productNameById.value[id]).map(id => ensureProductName(id)),
   )
-  // Fetch seller labels
-  await Promise.all(Array.from(vetIds).map(id => ensureVetLabel(id)))
+  // Fetch buyer labels for owners
+  await Promise.all(Array.from(ownerIds).map(id => ensureOwnerLabel(id)))
 }
 
-// When range changes, ensure we hydrate any newly visible orders
+// Rehydrate details as range changes to include newly visible orders
 watch(recentOrders, async () => {
-  await preloadRecentOrderDetails()
+  await preloadOrderDetails()
 })
 
-/**
- * Ensure a product name is cached; fetches product details if needed.
- */
+/** Ensure a product name is available; fetches /products/:id if missing. */
 const ensureProductName = async (productId: string) => {
   if (productNameById.value[productId]) return productNameById.value[productId]
   try {
     if (!auth.session?.access_token) return productId
     const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/products/${encodeURIComponent(productId)}`, {
-      headers: {
-        Authorization: `Bearer ${auth.session.access_token}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { Authorization: `Bearer ${auth.session.access_token}`, 'Content-Type': 'application/json' },
     })
     if (!res.ok) return productId
     const body = await res.json()
-    const product = (body.data || body)
-    if (product && product.name) {
-      productNameById.value[productId] = product.name as string
-      return product.name as string
-    }
-  } catch (_) {}
-  return productId
+    const product = body.data || body
+    if (product?.name) productNameById.value[productId] = product.name
+    return productNameById.value[productId] || productId
+  } catch (_) {
+    return productId
+  }
 }
 
-/** Ensure a veterinarian label is cached; fetches /veterinarians/:id/label */
-const ensureVetLabel = async (vetId: string) => {
-  if (sellerNameById.value[vetId]) return sellerNameById.value[vetId]
+/** Ensure we have buyer label for display; calls /owners/:id/label and caches fields. */
+const ensureOwnerLabel = async (ownerId: string) => {
+  const cached = ownerLabelById.value[ownerId]
+  if (cached) return cached
   try {
-    if (!auth.session?.access_token) return vetId
-    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/veterinarians/${encodeURIComponent(vetId)}/label`, {
-      headers: {
-        Authorization: `Bearer ${auth.session.access_token}`,
-        'Content-Type': 'application/json',
-      },
+    if (!auth.session?.access_token) return null
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/owners/${encodeURIComponent(ownerId)}/label`, {
+      headers: { Authorization: `Bearer ${auth.session.access_token}`, 'Content-Type': 'application/json' },
     })
-    if (!res.ok) return vetId
+    if (!res.ok) return null
     const body = await res.json()
     const label = body.data || body
-    if (label?.name) sellerNameById.value[vetId] = label.name
-    return sellerNameById.value[vetId] || vetId
-  } catch (_) {
-    return vetId
-  }
+    if (label?.id) {
+      ownerLabelById.value[ownerId] = {
+        name: label.name,
+        email: label.email,
+        phone: label.phone,
+        address: label.address,
+      }
+      return ownerLabelById.value[ownerId]
+    }
+  } catch (_) {}
+  return null
 }
 </script>
 

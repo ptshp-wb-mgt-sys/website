@@ -46,14 +46,14 @@
         </div>
       </Card>
 
-      <Card class="p-6">
+      <Card class="p-6 cursor-pointer group hover:bg-gray-50 transition" @click="goToSalesHistory">
         <div class="flex items-center">
           <div class="w-12 h-12 bg-aquamarine-100 rounded-lg flex items-center justify-center mr-4">
             <Coins class="w-6 h-6 text-aquamarine" />
           </div>
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600">Revenue This Month</p>
-            <p class="text-2xl font-bold text-rich-black">{{ formatPHP(monthlyRevenue) }}</p>
+            <p class="text-sm font-medium text-gray-600">Revenue (7 Days)</p>
+            <p class="text-2xl font-bold text-rich-black flex items-center">{{ formatPHP(recentRevenue7) }} <ChevronRight class="w-7 h-7 ml-2 transition-transform group-hover:translate-x-1" /></p>
           </div>
         </div>
       </Card>
@@ -150,7 +150,7 @@
 <script setup lang="ts">
 import { onMounted, computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Heart, Calendar, FileText, Users, Coins, Package } from 'lucide-vue-next'
+import { Plus, Heart, Calendar, FileText, Users, Coins, Package, ChevronRight } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import { useAppointmentsStore } from '@/stores/appointments'
@@ -212,7 +212,13 @@ const activePatientsCount = computed(() => {
     .forEach(a => set.add(a.pet_id))
   return set.size
 })
-const monthlyRevenue = computed(() => ordersStore.monthlyRevenue || 0)
+/** Revenue for the last 7 days. */
+const recentRevenue7 = computed(() => {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+  return ordersStore.orders
+    .filter(o => new Date(o.created_at).getTime() >= cutoff && o.status !== 'cancelled')
+    .reduce((s, o) => s + (o.total_amount || 0), 0)
+})
 
 // Recent patients: last 2 completed visits by distinct pet
 const recentPatients = computed(() => {
@@ -308,6 +314,8 @@ const goToNewRecord = () => {
 const goToAvailability = () => router.push({ name: 'my-schedule' })
 /** Navigate to vet product catalog management. */
 const goToProducts = () => router.push({ name: 'manage-products' })
+/** Navigate to sales history. */
+const goToSalesHistory = () => router.push({ name: 'sales-history' })
 /** Navigate to patients grid. */
 const goToPatients = () => router.push({ name: 'patients' })
 /** Open a pet profile by its id. */
