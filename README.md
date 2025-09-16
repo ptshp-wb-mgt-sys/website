@@ -2,6 +2,8 @@
 
 Monorepo for a simple, practical pet management platform with appointments, QR public pet profiles, and a lightweight e‑commerce flow.
 
+<img width="3052" height="1825" alt="image" src="https://github.com/user-attachments/assets/fd22a878-b73d-4f13-be0d-a5174b22142b" />
+
 ## Structure
 
 ```bash
