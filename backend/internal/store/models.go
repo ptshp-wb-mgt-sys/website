@@ -144,17 +144,17 @@ type Pet struct {
 
 // MedicalRecord represents a veterinary visit record
 type MedicalRecord struct {
-	ID                   string    `json:"id"                    db:"id"`
-	PetID                string    `json:"pet_id"                db:"pet_id"`
-	VeterinarianID       string    `json:"veterinarian_id"       db:"veterinarian_id"`
+	ID                   string    `json:"id"                       db:"id"`
+	PetID                string    `json:"pet_id"                   db:"pet_id"`
+	VeterinarianID       string    `json:"veterinarian_id"          db:"veterinarian_id"`
 	AppointmentID        *string   `json:"appointment_id,omitempty" db:"appointment_id"`
-	DateOfVisit          time.Time `json:"date_of_visit"         db:"date_of_visit"`
-	ReasonForVisit       string    `json:"reason_for_visit"      db:"reason_for_visit"`
-	Diagnosis            string    `json:"diagnosis"             db:"diagnosis"`
-	MedicationPrescribed []string  `json:"medication_prescribed" db:"medication_prescribed"`
-	Notes                string    `json:"notes"                 db:"notes"`
-	CreatedAt            time.Time `json:"created_at"            db:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"            db:"updated_at"`
+	DateOfVisit          time.Time `json:"date_of_visit"            db:"date_of_visit"`
+	ReasonForVisit       string    `json:"reason_for_visit"         db:"reason_for_visit"`
+	Diagnosis            string    `json:"diagnosis"                db:"diagnosis"`
+	MedicationPrescribed []string  `json:"medication_prescribed"    db:"medication_prescribed"`
+	Notes                string    `json:"notes"                    db:"notes"`
+	CreatedAt            time.Time `json:"created_at"               db:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"               db:"updated_at"`
 }
 
 // QRCode represents a QR code for pet identification
