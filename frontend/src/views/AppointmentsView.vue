@@ -230,7 +230,11 @@
         <div class="space-y-3">
           <div v-for="appt in todaysAppointments" :key="appt.id" class="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <div class="space-y-1">
-              <p class="font-medium text-rich-black">{{ formatTimeHM(appt.appointment_date, false) }} - {{ appt.reason }} • <span class="text-gray-600 text-sm">{{ petLabel(appt.pet_id) }}</span></p>
+              <p class="font-medium text-rich-black">
+                {{ formatTimeHM(appt.appointment_date, false) }} - {{ appt.reason }}
+                <span class="text-gray-600 text-sm"> • {{ petLabel(appt.pet_id) }}</span>
+                <span v-if="ownerName(appt.client_id)" class="text-gray-500 text-xs sm:text-sm"> • {{ ownerName(appt.client_id) }}</span>
+              </p>
               <span class="inline-flex items-center text-xs px-2 py-0.5 rounded-full"
                 :class="{
                   'bg-green-100 text-green-700': appt.status === 'completed',
@@ -255,7 +259,11 @@
         <div class="space-y-3">
           <div v-for="appt in vetUpcoming" :key="appt.id" class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
             <div>
-              <p class="font-medium text-rich-black">{{ formatDateTimeMDYHM(appt.appointment_date) }} - {{ appt.reason }} • <span class="text-gray-600">{{ petLabel(appt.pet_id) }}</span></p>
+              <p class="font-medium text-rich-black">
+                {{ formatDateTimeMDYHM(appt.appointment_date) }} - {{ appt.reason }}
+                <span class="text-gray-600"> • {{ petLabel(appt.pet_id) }}</span>
+                <span v-if="ownerName(appt.client_id)" class="text-gray-500 text-xs sm:text-sm"> • {{ ownerName(appt.client_id) }}</span>
+              </p>
               <p class="text-xs text-gray-600 capitalize">Status: {{ appt.status }}</p>
             </div>
             <div class="flex space-x-2">
@@ -445,6 +453,11 @@ onMounted(async () => {
       const ids = apptStore.appointments.map(a => a.pet_id)
       await ensurePetLabelsFor(ids)
     } catch (_) {}
+    // Warm owner labels so vets can see pet parents instantly
+    try {
+      const ownerIds = apptStore.appointments.map(a => a.client_id)
+      await ensureOwnerNamesFor(ownerIds)
+    } catch (_) {}
   }
   // Sync with profile after mount as well
   if (userStore.isVeterinarian) {
@@ -484,6 +497,15 @@ watch(
     if (Array.isArray(hours)) {
       availability.value = hours.map(h => ({ day_of_week: h.day_of_week, start: h.start, end: h.end }))
     }
+  },
+)
+
+watch(
+  () => apptStore.appointments.map(a => a.client_id),
+  async (clientIds) => {
+    try {
+      await ensureOwnerNamesFor(clientIds)
+    } catch (_) {}
   },
 )
 
@@ -631,9 +653,18 @@ async function ensurePetLabelsFor(ids: string[]): Promise<void> {
   })
 }
 
+async function ensureOwnerNamesFor(ownerIds: string[]): Promise<void> {
+  if (!ownerIds.length) return
+  await petsStore.warmOwnerNames(ownerIds)
+}
+
 function petLabel(petId: string): string {
   const sync = petsStore.getPetLabelSync(petId)
   return sync || petLabels.value[petId] || ''
+}
+
+function ownerName(ownerId: string): string {
+  return petsStore.getOwnerNameSync(ownerId) || ''
 }
 
 /**
