@@ -25,7 +25,7 @@ export function formatPHP(amount: number): string {
 } 
 
 /**
- * formatTimeHM returns HH:mm for a given ISO datetime string.
+ * formatTimeHM returns hh:mm AM/PM for a given ISO datetime string.
  * Defaults to interpreting the input as UTC to avoid timezone drift across clients.
  */
 export function formatTimeHM(iso: string, useUTC = true): string {
@@ -34,7 +34,7 @@ export function formatTimeHM(iso: string, useUTC = true): string {
     return d.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false,
+      hour12: true,
       timeZone: useUTC ? 'UTC' : undefined,
     })
   } catch {
@@ -43,7 +43,7 @@ export function formatTimeHM(iso: string, useUTC = true): string {
 }
 
 /**
- * formatDateTimeMDYHM returns "M/D/YYYY, HH:mm" for a given ISO datetime string.
+ * formatDateTimeMDYHM returns "M/D/YYYY, hh:mm AM/PM" for a given ISO datetime string.
  * By default uses the viewer's local timezone; pass useUTC=true to force UTC.
  */
 export function formatDateTimeMDYHM(iso: string, useUTC = false): string {
@@ -55,7 +55,7 @@ export function formatDateTimeMDYHM(iso: string, useUTC = false): string {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false,
+      hour12: true,
       timeZone: useUTC ? 'UTC' : undefined,
     })
   } catch {

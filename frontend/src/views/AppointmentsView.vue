@@ -513,6 +513,25 @@ const currentDate = computed(() => {
   })
 })
 
+/**
+ * formatSlotRange turns HH:mm pairs into friendly hh:mm AM/PM ranges.
+ */
+const formatSlotRange = (start: string, end: string): string => {
+  const formatTime = (time: string): string => {
+    const [hourRaw = '0', minuteRaw = '00'] = time.split(':')
+    const hour = parseInt(hourRaw, 10)
+    if (Number.isNaN(hour)) return time
+    const minutes = minuteRaw.slice(0, 2).padEnd(2, '0')
+    const period = hour >= 12 ? 'PM' : 'AM'
+    const normalizedHour = (hour % 12) || 12
+    return `${normalizedHour}:${minutes} ${period}`
+  }
+  const startLabel = formatTime(start)
+  const endLabel = formatTime(end)
+  if (!startLabel || !endLabel) return `${start} - ${end}`
+  return `${startLabel} - ${endLabel}`
+}
+
 // Compute availability display from saved availability rows
 const availabilityDays = computed(() => {
   // Start week on Sunday
@@ -521,7 +540,7 @@ const availabilityDays = computed(() => {
   for (const row of availability.value) {
     const idx = days.indexOf(row.day_of_week)
     if (idx >= 0) {
-      map[idx].slots.push(`${row.start} - ${row.end}`)
+      map[idx].slots.push(formatSlotRange(row.start, row.end))
     }
   }
   return map
