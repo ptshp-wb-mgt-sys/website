@@ -147,6 +147,7 @@ type MedicalRecord struct {
 	ID                   string    `json:"id"                    db:"id"`
 	PetID                string    `json:"pet_id"                db:"pet_id"`
 	VeterinarianID       string    `json:"veterinarian_id"       db:"veterinarian_id"`
+	AppointmentID        *string   `json:"appointment_id,omitempty" db:"appointment_id"`
 	DateOfVisit          time.Time `json:"date_of_visit"         db:"date_of_visit"`
 	ReasonForVisit       string    `json:"reason_for_visit"      db:"reason_for_visit"`
 	Diagnosis            string    `json:"diagnosis"             db:"diagnosis"`
@@ -320,12 +321,14 @@ func NewMedicalRecord(
 	dateOfVisit time.Time,
 	medicationPrescribed []string,
 	notes string,
+	appointmentID *string,
 ) *MedicalRecord {
 	now := time.Now()
 	return &MedicalRecord{
 		ID:                   uuid.New().String(),
 		PetID:                petID,
 		VeterinarianID:       veterinarianID,
+		AppointmentID:        appointmentID,
 		DateOfVisit:          dateOfVisit,
 		ReasonForVisit:       reasonForVisit,
 		Diagnosis:            diagnosis,

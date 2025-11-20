@@ -6,6 +6,7 @@ export interface MedicalRecord {
   id: string
   pet_id: string
   veterinarian_id: string
+  appointment_id: string | null
   date_of_visit: string
   reason_for_visit: string
   diagnosis: string
@@ -21,6 +22,7 @@ export interface CreateMedicalRecordRequest {
   diagnosis: string
   medication_prescribed: string[]
   notes?: string
+  appointment_id?: string
 }
 
 export interface UpdateMedicalRecordRequest {
@@ -29,6 +31,7 @@ export interface UpdateMedicalRecordRequest {
   diagnosis?: string
   medication_prescribed?: string[]
   notes?: string
+  appointment_id?: string
 }
 
 export const useMedicalRecordsStore = defineStore('medicalRecords', () => {

@@ -63,19 +63,35 @@
         <template v-else>
           <Card v-if="records.length === 0" class="p-6 text-gray-600">No medical records yet.</Card>
           <div v-else class="space-y-3">
-            <Card v-for="rec in recordsSorted" :key="rec.id" class="p-4">
-              <div class="flex items-start justify-between">
+            <Card v-for="group in recordGroups" :key="group.key" class="p-0 overflow-hidden">
+              <div
+                v-if="group.appointment"
+                class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-slate-50 px-4 py-3"
+              >
                 <div>
-                  <p class="font-medium text-rich-black">{{ formatDate(rec.date_of_visit) }} — {{ rec.reason_for_visit }}</p>
-                  <p class="text-sm text-gray-700">Diagnosis: {{ rec.diagnosis || '—' }}</p>
-                  <p class="text-sm text-gray-700" v-if="rec.medication_prescribed?.length">
-                    Meds: {{ rec.medication_prescribed.join(', ') }}
-                  </p>
-                  <p class="text-sm text-gray-600 mt-1" v-if="rec.notes">{{ rec.notes }}</p>
+                  <p class="text-sm font-semibold text-rich-black">Appointment: {{ formatAppointmentLabel(group.appointment) }}</p>
                 </div>
-                <div class="flex items-center space-x-2" v-if="isVet">
-                  <Button variant="outline" size="sm" @click="startEdit(rec)">Edit</Button>
-                  <Button variant="ghost" size="sm" class="text-red-600" @click="remove(rec)">Delete</Button>
+                <span
+                  class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
+                  :class="appointmentStatusClass(group.appointment.status)"
+                >
+                  {{ group.appointment.status }}
+                </span>
+              </div>
+              <div class="divide-y divide-gray-100">
+                <div v-for="rec in group.records" :key="rec.id" class="flex items-start justify-between gap-4 p-4">
+                  <div>
+                    <p class="font-medium text-rich-black">{{ formatDate(rec.date_of_visit) }} — {{ rec.reason_for_visit }}</p>
+                    <p class="text-sm text-gray-700">Diagnosis: {{ rec.diagnosis || '—' }}</p>
+                    <p class="text-sm text-gray-700" v-if="rec.medication_prescribed?.length">
+                      Meds: {{ rec.medication_prescribed.join(', ') }}
+                    </p>
+                    <p class="text-sm text-gray-600 mt-1" v-if="rec.notes">{{ rec.notes }}</p>
+                  </div>
+                  <div class="flex items-center space-x-2" v-if="isVet">
+                    <Button variant="outline" size="sm" @click="startEdit(rec)">Edit</Button>
+                    <Button variant="ghost" size="sm" class="text-red-600" @click="remove(rec)">Delete</Button>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -93,6 +109,16 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
               <input v-model="form.reason_for_visit" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Appointment</label>
+              <select v-model="form.appointment_id" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                <option value="">No appointment / general note</option>
+                <option v-for="appt in appointmentOptions" :key="appt.id" :value="appt.id">
+                  {{ formatAppointmentLabel(appt) }}
+                </option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500">Linked records stack under the same appointment above.</p>
             </div>
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-1">Diagnosis</label>
@@ -129,12 +155,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { usePetsStore, type Pet } from '@/stores/pets'
 import { useMedicalRecordsStore, type MedicalRecord, type CreateMedicalRecordRequest, type UpdateMedicalRecordRequest } from '@/stores/medicalRecords'
+import { useAppointmentsStore, type Appointment } from '@/stores/appointments'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import { Loader2, AlertCircle, QrCode } from 'lucide-vue-next'
 import QRPreviewModal from '@/components/QRPreviewModal.vue'
 import { useQRCodesStore } from '@/stores/qrcodes'
 import EditPetModal from '@/components/EditPetModal.vue'
+import { formatDateTimeMDYHM } from '@/lib/utils'
 
 const route = useRoute()
 const router = useRouter()
@@ -142,6 +170,7 @@ const userStore = useUserStore()
 const petsStore = usePetsStore()
 const recordsStore = useMedicalRecordsStore()
 const qrStore = useQRCodesStore()
+const appointmentsStore = useAppointmentsStore()
 
 const id = route.params.id as string
 
@@ -152,8 +181,56 @@ const ownerName = ref('')
 
 const recordsLoading = computed(() => recordsStore.loading)
 const records = computed<MedicalRecord[]>(() => recordsStore.getCachedForPet(id))
-const recordsSorted = computed(() => {
-  return [...records.value].sort((a, b) => new Date(b.date_of_visit).getTime() - new Date(a.date_of_visit).getTime())
+
+/**
+ * Sorted appointment list scoped to this pet (newest first).
+ */
+const appointmentOptions = computed<Appointment[]>(() => {
+  return [...appointmentsStore.appointments]
+    .filter(appt => appt.pet_id === id)
+    .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
+})
+
+/**
+ * Handy lookup map for appointment metadata.
+ */
+const appointmentLookup = computed<Record<string, Appointment>>(() => {
+  return appointmentOptions.value.reduce((acc, appt) => {
+    acc[appt.id] = appt
+    return acc
+  }, {} as Record<string, Appointment>)
+})
+
+/**
+ * Medical records grouped by appointment (standalone card when unlinked).
+ */
+const recordGroups = computed(() => {
+  const buckets = new Map<
+    string,
+    { appointment?: Appointment; records: MedicalRecord[]; sortDate: number }
+  >()
+
+  const sortedRecords = [...records.value].sort(
+    (a, b) => new Date(b.date_of_visit).getTime() - new Date(a.date_of_visit).getTime(),
+  )
+
+  for (const rec of sortedRecords) {
+    const key = rec.appointment_id || `record-${rec.id}`
+    if (!buckets.has(key)) {
+      const appointment = rec.appointment_id ? appointmentLookup.value[rec.appointment_id] : undefined
+      const anchor = appointment ? new Date(appointment.appointment_date).getTime() : new Date(rec.date_of_visit).getTime()
+      buckets.set(key, { appointment, records: [], sortDate: anchor })
+    }
+    buckets.get(key)!.records.push(rec)
+  }
+
+  return [...buckets.entries()]
+    .sort((a, b) => b[1].sortDate - a[1].sortDate)
+    .map(([key, payload]) => ({
+      key,
+      appointment: payload.appointment,
+      records: payload.records,
+    }))
 })
 
 const isClient = computed(() => userStore.isClient)
@@ -165,12 +242,15 @@ const medicationsText = ref('')
 const showQRModal = ref(false)
 const showEditPet = ref(false)
 
-const form = ref<CreateMedicalRecordRequest | UpdateMedicalRecordRequest>({
+type MedicalRecordFormValues = CreateMedicalRecordRequest & UpdateMedicalRecordRequest & { appointment_id?: string }
+
+const form = ref<MedicalRecordFormValues>({
   date_of_visit: '',
   reason_for_visit: '',
   diagnosis: '',
   medication_prescribed: [],
   notes: '',
+  appointment_id: '',
 })
 
 /**
@@ -208,6 +288,7 @@ const initialize = async () => {
     if (petsStore.pets.length === 0) {
       await petsStore.fetchPets()
     }
+    await appointmentsStore.fetchAppointments()
     // Prefer cache, fallback to API
     pet.value = petsStore.pets.find(p => p.id === id) || (await petsStore.getPet(id))
     try { await loadOwnerName(pet.value?.owner_id) } catch (_) {}
@@ -239,6 +320,7 @@ const startEdit = (rec: MedicalRecord) => {
     diagnosis: rec.diagnosis,
     medication_prescribed: rec.medication_prescribed || [],
     notes: rec.notes,
+    appointment_id: rec.appointment_id || '',
   }
   medicationsText.value = (rec.medication_prescribed || []).join(', ')
 }
@@ -252,6 +334,7 @@ const save = async () => {
     .split(',')
     .map(m => m.trim())
     .filter(Boolean)
+  const normalizedAppointmentId = (form.value.appointment_id || '').trim()
 
   // Normalize date to ISO if provided as YYYY-MM-DD
   const normalizeDate = (d?: string) => {
@@ -271,6 +354,7 @@ const save = async () => {
       diagnosis: form.value.diagnosis,
       medication_prescribed: meds,
       notes: form.value.notes,
+      appointment_id: normalizedAppointmentId,
     }
     await recordsStore.updateRecord(editing.value.id, updates)
   } else {
@@ -280,6 +364,7 @@ const save = async () => {
       diagnosis: form.value.diagnosis || '',
       medication_prescribed: meds,
       notes: form.value.notes || '',
+      appointment_id: normalizedAppointmentId,
     }
     await recordsStore.createRecord(id, payload)
   }
@@ -293,7 +378,7 @@ const save = async () => {
 const cancelEdit = () => {
   editing.value = null
   showAdd.value = false
-  form.value = { date_of_visit: '', reason_for_visit: '', diagnosis: '', medication_prescribed: [], notes: '' }
+  form.value = { date_of_visit: '', reason_for_visit: '', diagnosis: '', medication_prescribed: [], notes: '', appointment_id: '' }
   medicationsText.value = ''
 }
 
@@ -372,6 +457,29 @@ const loadOwnerName = async (ownerId?: string) => {
     const user = body.data || body
     ownerName.value = user?.name || ''
   } catch (_) {}
+}
+
+/**
+ * Format appointment details for display.
+ */
+const formatAppointmentLabel = (appt: Appointment) => {
+  return `${formatDateTimeMDYHM(appt.appointment_date)} • ${appt.reason}`
+}
+
+/**
+ * Style badge colors per appointment status.
+ */
+const appointmentStatusClass = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return 'bg-emerald-100 text-emerald-700'
+    case 'cancelled':
+      return 'bg-red-100 text-red-700'
+    case 'rescheduled':
+      return 'bg-amber-100 text-amber-700'
+    default:
+      return 'bg-slate-200 text-slate-800'
+  }
 }
 </script>
 

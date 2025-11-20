@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS medical_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
     veterinarian_id UUID NOT NULL REFERENCES veterinarians(id) ON DELETE CASCADE,
+    appointment_id UUID REFERENCES appointments(id) ON DELETE SET NULL,
     date_of_visit TIMESTAMP WITH TIME ZONE NOT NULL,
     reason_for_visit TEXT NOT NULL,
     diagnosis TEXT,
@@ -140,6 +141,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 CREATE INDEX IF NOT EXISTS idx_pets_owner_id ON pets(owner_id);
 CREATE INDEX IF NOT EXISTS idx_medical_records_pet_id ON medical_records(pet_id);
 CREATE INDEX IF NOT EXISTS idx_medical_records_veterinarian_id ON medical_records(veterinarian_id);
+CREATE INDEX IF NOT EXISTS idx_medical_records_appointment_id ON medical_records(appointment_id);
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
 CREATE INDEX IF NOT EXISTS idx_veterinarians_email ON veterinarians(email);
 -- New indexes for PRD features

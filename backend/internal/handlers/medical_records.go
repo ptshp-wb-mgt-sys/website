@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"pet-mgt/backend/internal/middleware"
 	"pet-mgt/backend/internal/store"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -52,6 +53,7 @@ func (h *MedicalRecordHandler) CreateMedicalRecord(
 		Diagnosis            string    `json:"diagnosis"`
 		MedicationPrescribed []string  `json:"medication_prescribed"`
 		Notes                string    `json:"notes"`
+		AppointmentID        string    `json:"appointment_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -71,6 +73,24 @@ func (h *MedicalRecordHandler) CreateMedicalRecord(
 		req.DateOfVisit = time.Now()
 	}
 
+	var appointmentIDPtr *string
+	if appointmentID := strings.TrimSpace(req.AppointmentID); appointmentID != "" {
+		appointment, err := h.db.GetAppointmentByID(r.Context(), appointmentID)
+		if err != nil {
+			ErrorResponse(w, http.StatusBadRequest, "Appointment not found")
+			return
+		}
+		if appointment.PetID != petID {
+			ErrorResponse(w, http.StatusBadRequest, "Appointment does not belong to this pet")
+			return
+		}
+		if appointment.VeterinarianID != user.Sub && user.Role != "admin" {
+			ErrorResponse(w, http.StatusForbidden, "You cannot link records to this appointment")
+			return
+		}
+		appointmentIDPtr = &appointmentID
+	}
+
 	record := store.NewMedicalRecord(
 		petID,
 		user.Sub,
@@ -79,6 +99,7 @@ func (h *MedicalRecordHandler) CreateMedicalRecord(
 		req.DateOfVisit,
 		req.MedicationPrescribed,
 		req.Notes,
+		appointmentIDPtr,
 	)
 
 	if err := h.db.CreateMedicalRecord(r.Context(), record); err != nil {
@@ -210,11 +231,30 @@ func (h *MedicalRecordHandler) UpdateMedicalRecord(
 		Diagnosis            string    `json:"diagnosis"`
 		MedicationPrescribed []string  `json:"medication_prescribed"`
 		Notes                string    `json:"notes"`
+		AppointmentID        string    `json:"appointment_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Invalid request body")
 		return
+	}
+
+	var appointmentIDPtr *string
+	if appointmentID := strings.TrimSpace(req.AppointmentID); appointmentID != "" {
+		appointment, err := h.db.GetAppointmentByID(r.Context(), appointmentID)
+		if err != nil {
+			ErrorResponse(w, http.StatusBadRequest, "Appointment not found")
+			return
+		}
+		if appointment.PetID != record.PetID {
+			ErrorResponse(w, http.StatusBadRequest, "Appointment does not belong to this pet")
+			return
+		}
+		if appointment.VeterinarianID != user.Sub && user.Role != "admin" {
+			ErrorResponse(w, http.StatusForbidden, "You cannot link records to this appointment")
+			return
+		}
+		appointmentIDPtr = &appointmentID
 	}
 
 	// Update record fields
@@ -223,6 +263,7 @@ func (h *MedicalRecordHandler) UpdateMedicalRecord(
 	record.Diagnosis = req.Diagnosis
 	record.MedicationPrescribed = req.MedicationPrescribed
 	record.Notes = req.Notes
+	record.AppointmentID = appointmentIDPtr
 	record.UpdatedAt = time.Now()
 
 	if err := h.db.UpdateMedicalRecord(r.Context(), record); err != nil {
