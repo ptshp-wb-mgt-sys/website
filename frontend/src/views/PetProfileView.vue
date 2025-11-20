@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { usePetsStore, type Pet } from '@/stores/pets'
@@ -172,6 +172,31 @@ const form = ref<CreateMedicalRecordRequest | UpdateMedicalRecordRequest>({
   medication_prescribed: [],
   notes: '',
 })
+
+/**
+ * Grab today's date in the YYYY-MM-DD flavor input[type=date] expects.
+ */
+const getTodayDate = () => {
+  return new Date().toISOString().slice(0, 10)
+}
+
+/**
+ * Ensure the add-record flow starts with today's visit date prefilled.
+ */
+const ensureVisitDateDefault = () => {
+  if (editing.value) return
+  form.value.date_of_visit = getTodayDate()
+}
+
+/**
+ * Watch the add-record modal toggle so we can seed the date field.
+ */
+const handleAddModalToggle = (isOpen: boolean) => {
+  if (!isOpen) return
+  ensureVisitDateDefault()
+}
+
+watch(showAdd, handleAddModalToggle)
 
 /**
  * Fetch pet details and medical records.
