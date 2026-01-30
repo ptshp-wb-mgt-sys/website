@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS products (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     category VARCHAR(100) NOT NULL,
-    -- food, medicine, accessories, toys, etc.
+    -- food, medicine, accessories, toys, other
     price DECIMAL(10, 2) NOT NULL,
     stock_quantity INTEGER DEFAULT 0,
     sku VARCHAR(100) UNIQUE,
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS products (
     weight DECIMAL(5, 2),
     -- product weight in kg
     dimensions JSONB,
-    -- {length, width, height}
+    -- {length, width, height, unit, measurement_value, measurement_unit}
     is_prescription_required BOOLEAN DEFAULT false,
     is_active BOOLEAN DEFAULT true,
     images TEXT [],
