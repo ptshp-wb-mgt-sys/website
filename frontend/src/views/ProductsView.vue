@@ -448,12 +448,12 @@ async function deleteProduct(): Promise<void> {
 }
 
 /**
- * Format price with measurement unit like "₱50/12pcs".
+ * Format price with measurement unit like "₱50 (12pcs)".
  */
 function formatPriceWithMeasurement(p: Product): string {
   const priceStr = formatPHP(p.price)
   if (p.dimensions?.measurement_value && p.dimensions?.measurement_unit) {
-    return `${priceStr}/${p.dimensions.measurement_value}${p.dimensions.measurement_unit}`
+    return `${priceStr} (${p.dimensions.measurement_value}${p.dimensions.measurement_unit})`
   }
   return priceStr
 }
