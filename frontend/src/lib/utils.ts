@@ -43,13 +43,14 @@ export function formatTimeHM(iso: string, useUTC = true): string {
 }
 
 /**
- * formatDateTimeMDYHM returns "M/D/YYYY, hh:mm AM/PM" for a given ISO datetime string.
+ * formatDateTimeMDYHM returns "Mon, M/D/YYYY, hh:mm AM/PM" for a given ISO datetime string.
  * By default uses the viewer's local timezone; pass useUTC=true to force UTC.
  */
 export function formatDateTimeMDYHM(iso: string, useUTC = false): string {
   try {
     const d = new Date(iso)
     return d.toLocaleString([], {
+      weekday: 'short',
       month: 'numeric',
       day: 'numeric',
       year: 'numeric',

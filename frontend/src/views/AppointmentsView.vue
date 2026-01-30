@@ -104,7 +104,17 @@
         </div>
         <p v-if="uiError" class="text-sm text-red-600 mt-3">{{ uiError }}</p>
         <div v-if="slots.length" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-          <Button v-for="s in slots" :key="s.start_time" variant="outline" :disabled="isSlotInPast(s)" @click="selectSlot(s)">
+          <Button
+            v-for="s in slots"
+            :key="s.start_time"
+            variant="outline"
+            :disabled="isSlotInPast(s) || !s.available"
+            :class="{
+              'opacity-40 cursor-not-allowed line-through': !s.available,
+              'ring-2 ring-aquamarine ring-offset-2 bg-aquamarine/10 border-aquamarine': isSlotSelected(s)
+            }"
+            @click="selectSlot(s)"
+          >
             {{ formatTimeHM(s.start_time, false) }}
           </Button>
         </div>
@@ -128,7 +138,17 @@
           <Button @click="loadSlots">Find Available Times</Button>
         </div>
         <div v-if="slots.length" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-          <Button v-for="s in slots" :key="s.start_time" variant="outline" @click="selectSlot(s)">
+          <Button
+            v-for="s in slots"
+            :key="s.start_time"
+            variant="outline"
+            :disabled="isSlotInPast(s) || !s.available"
+            :class="{
+              'opacity-40 cursor-not-allowed line-through': !s.available,
+              'ring-2 ring-aquamarine ring-offset-2 bg-aquamarine/10 border-aquamarine': isSlotSelected(s)
+            }"
+            @click="selectSlot(s)"
+          >
             {{ formatTimeHM(s.start_time, false) }}
           </Button>
         </div>
@@ -148,6 +168,10 @@
                 <div class="space-y-1">
                   <h3 class="font-semibold text-rich-black">{{ appt.reason }} • <span class="text-gray-600">{{ petLabel(appt.pet_id) }}</span></h3>
                   <p class="text-sm text-gray-600">{{ formatDateTimeMDYHM(appt.appointment_date) }}</p>
+                  <p v-if="vetInfo(appt.veterinarian_id)" class="text-sm text-gray-700">
+                    <span class="font-medium">Dr. {{ vetInfo(appt.veterinarian_id)?.name }}</span>
+                    <span v-if="vetInfo(appt.veterinarian_id)?.clinic_address" class="text-gray-500"> • {{ vetInfo(appt.veterinarian_id)?.clinic_address }}</span>
+                  </p>
                   <p class="text-xs" :class="appt.status === 'confirmed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
                 </div>
                 <div class="flex space-x-2">
@@ -166,8 +190,12 @@
             <Card v-for="appt in pastAppointments" :key="appt.id" class="p-6">
               <div class="flex items-center justify-between">
                 <div class="space-y-1">
-                  <h3 class="font-semibold text-rich-black">{{ appt.reason }}</h3>
+                  <h3 class="font-semibold text-rich-black">{{ appt.reason }} • <span class="text-gray-600">{{ petLabel(appt.pet_id) }}</span></h3>
                   <p class="text-sm text-gray-600">{{ formatDateTimeMDYHM(appt.appointment_date) }}</p>
+                  <p v-if="vetInfo(appt.veterinarian_id)" class="text-sm text-gray-700">
+                    <span class="font-medium">Dr. {{ vetInfo(appt.veterinarian_id)?.name }}</span>
+                    <span v-if="vetInfo(appt.veterinarian_id)?.clinic_address" class="text-gray-500"> • {{ vetInfo(appt.veterinarian_id)?.clinic_address }}</span>
+                  </p>
                   <p class="text-xs" :class="appt.status === 'completed' ? 'text-green-600' : 'text-gray-600'">{{ appt.status }}</p>
                 </div>
                 <div class="flex space-x-2">
@@ -668,7 +696,15 @@ function ownerName(ownerId: string): string {
 }
 
 /**
+ * Get veterinarian info by ID for displaying in appointment cards.
+ */
+function vetInfo(vetId: string): { name: string; clinic_address?: string } | null {
+  return veterinarians.value.find(v => v.id === vetId) || null
+}
+
+/**
  * Load available time slots for the selected vet and date.
+ * Shows all slots but filters out past times. Unavailable slots are shown grayed out.
  */
 const loadSlots = async () => {
   uiError.value = null
@@ -680,7 +716,7 @@ const loadSlots = async () => {
   const iso = new Date(date.value + 'T00:00:00').toISOString()
   const fetched = await apptStore.getAvailableSlots(form.value.veterinarian_id, iso)
   const now = Date.now()
-  // Filter out past times (including earlier today)
+  // Filter out past times only; unavailable slots will be shown but disabled
   slots.value = fetched.filter(s => new Date(s.start_time).getTime() >= now)
   triedLoadSlots.value = true
 }
@@ -798,6 +834,13 @@ const todayISODate = computed(() => {
 
 const isSlotInPast = (slot: TimeSlot) => {
   return new Date(slot.start_time).getTime() < Date.now()
+}
+
+/**
+ * Check if a slot is currently selected.
+ */
+const isSlotSelected = (slot: TimeSlot) => {
+  return selectedSlot.value?.start_time === slot.start_time
 }
 
 // QR modal state & opener

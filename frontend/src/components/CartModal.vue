@@ -32,6 +32,13 @@
         <div class="text-lg font-semibold">{{ formatPHP(cart.subtotal) }}</div>
       </div>
 
+      <!-- Pickup notice -->
+      <div v-if="cart.items.length > 0" class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <p class="text-sm text-amber-800">
+          <strong>📍 Pickup Only:</strong> All products are for pickup at the veterinarian's clinic. Please coordinate pickup with the seller after checkout.
+        </p>
+      </div>
+
       <div class="grid grid-cols-2 gap-3">
         <Button variant="outline" @click="cart.clear" :disabled="cart.items.length === 0">Clear</Button>
         <Button :disabled="cart.items.length === 0" @click="checkout">Checkout</Button>

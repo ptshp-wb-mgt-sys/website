@@ -2,6 +2,15 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 
+export interface ProductDimensions {
+  length?: number
+  width?: number
+  height?: number
+  unit?: string
+  measurement_value?: number
+  measurement_unit?: string
+}
+
 export interface Product {
   id: string
   veterinarian_id: string
@@ -12,6 +21,7 @@ export interface Product {
   stock_quantity: number
   is_active: boolean
   images?: string[]
+  dimensions?: ProductDimensions
   created_at: string
   updated_at: string
 }
@@ -107,6 +117,18 @@ export const useProductsStore = defineStore('products', () => {
     if (idx !== -1) products.value[idx].is_active = false
   }
 
+  /** Permanently delete a product. */
+  const deleteProduct = async (id: string) => {
+    if (!auth.session?.access_token) throw new Error('No authentication token')
+    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/v1/products/${encodeURIComponent(id)}?permanent=true`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${auth.session.access_token}` },
+    })
+    if (!res.ok) throw new Error(res.statusText)
+    const idx = products.value.findIndex(p => p.id === id)
+    if (idx !== -1) products.value.splice(idx, 1)
+  }
+
   /** Update product stock quantity. */
   const updateStock = async (id: string, quantity: number) => {
     if (!auth.session?.access_token) throw new Error('No authentication token')
@@ -120,7 +142,7 @@ export const useProductsStore = defineStore('products', () => {
     if (item) item.stock_quantity = quantity
   }
 
-  return { products, activeProducts, loading, error, lastFetchedAt, fetchProducts, createProduct, updateProduct, deactivateProduct, updateStock }
+  return { products, activeProducts, loading, error, lastFetchedAt, fetchProducts, createProduct, updateProduct, deactivateProduct, deleteProduct, updateStock }
 })
 
 
