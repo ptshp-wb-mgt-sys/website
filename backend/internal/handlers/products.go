@@ -47,9 +47,9 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		StockQuantity          int                     `json:"stock_quantity"`
 		SKU                    string                  `json:"sku,omitempty"`
 		Brand                  string                  `json:"brand,omitempty"`
-		Weight                 float64                 `json:"weight,omitempty"`
-		Dimensions             store.ProductDimensions `json:"dimensions"`
-		IsPrescriptionRequired bool                    `json:"is_prescription_required"`
+		Weight                 float64                  `json:"weight,omitempty"`
+		Dimensions             *store.ProductDimensions `json:"dimensions,omitempty"`
+		IsPrescriptionRequired bool                     `json:"is_prescription_required"`
 		Images                 []string                `json:"images,omitempty"`
 	}
 
@@ -123,6 +123,12 @@ func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 		Search:         r.URL.Query().Get("search"),
 		Limit:          10,
 		Offset:         0,
+	}
+
+	// Check if user is a vet/admin - they can see inactive products
+	user, ok := middleware.GetUserFromContext(r.Context())
+	if ok && (user.Role == "veterinarian" || user.Role == "admin") {
+		filters.IncludeInactive = true
 	}
 
 	// Parse numeric filters
@@ -257,7 +263,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		product.Weight = *updateData.Weight
 	}
 	if updateData.Dimensions != nil {
-		product.Dimensions = *updateData.Dimensions
+		product.Dimensions = updateData.Dimensions
 	}
 	if updateData.IsPrescriptionRequired != nil {
 		product.IsPrescriptionRequired = *updateData.IsPrescriptionRequired
@@ -278,7 +284,8 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	SuccessResponse(w, product)
 }
 
-// DeleteProduct deactivates a product (veterinarian or admin only)
+// DeleteProduct deactivates or permanently deletes a product (veterinarian or admin only)
+// Use ?permanent=true to permanently delete instead of deactivating
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	productID := chi.URLParam(r, "id")
 	if productID == "" {
@@ -306,14 +313,25 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Deactivate product instead of hard delete
-	product.IsActive = false
-	if err := h.db.UpdateProduct(r.Context(), product); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Failed to deactivate product")
-		return
-	}
+	// Check if permanent deletion is requested
+	permanent := r.URL.Query().Get("permanent") == "true"
 
-	MessageResponse(w, http.StatusOK, "Product deactivated successfully")
+	if permanent {
+		// Permanently delete the product
+		if err := h.db.DeleteProduct(r.Context(), productID); err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, "Failed to delete product")
+			return
+		}
+		MessageResponse(w, http.StatusOK, "Product deleted permanently")
+	} else {
+		// Deactivate product (soft delete)
+		product.IsActive = false
+		if err := h.db.UpdateProduct(r.Context(), product); err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, "Failed to deactivate product")
+			return
+		}
+		MessageResponse(w, http.StatusOK, "Product deactivated successfully")
+	}
 }
 
 // GetVeterinarianProducts retrieves products for a specific veterinarian
@@ -340,8 +358,11 @@ func (h *ProductHandler) GetVeterinarianProducts(
 		return
 	}
 
+	// Vets and admins can see inactive products
+	includeInactive := user.Role == "veterinarian" || user.Role == "admin"
+
 	// Get products
-	products, err := h.db.GetProductsByVeterinarianID(r.Context(), vetID)
+	products, err := h.db.GetProductsByVeterinarianID(r.Context(), vetID, includeInactive)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve products")
 		return

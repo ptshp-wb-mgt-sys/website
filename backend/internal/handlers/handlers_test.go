@@ -294,6 +294,7 @@ func (m *MockDatabase) GetAvailableAppointmentSlots(
 func (m *MockDatabase) GetProductsByVeterinarianID(
 	ctx context.Context,
 	vetID string,
+	includeInactive bool,
 ) ([]store.Product, error) {
 	return []store.Product{}, nil
 }

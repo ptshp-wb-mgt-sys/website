@@ -687,13 +687,18 @@ func normalizeDayKey(s string) string {
 func (s *SupabaseService) GetProductsByVeterinarianID(
 	ctx context.Context,
 	vetID string,
+	includeInactive bool,
 ) ([]Product, error) {
 	var products []Product
-	_, err := s.client.From("products").
+	query := s.client.From("products").
 		Select("*", "", false).
-		Eq("veterinarian_id", vetID).
-		Eq("is_active", "true").
-		ExecuteTo(&products)
+		Eq("veterinarian_id", vetID)
+	
+	if !includeInactive {
+		query = query.Eq("is_active", "true")
+	}
+	
+	_, err := query.ExecuteTo(&products)
 	return products, err
 }
 
@@ -742,7 +747,12 @@ func (s *SupabaseService) ListProducts(
 ) ([]Product, error) {
 	var products []Product
 
-	query := s.client.From("products").Select("*", "", false).Eq("is_active", "true")
+	query := s.client.From("products").Select("*", "", false)
+
+	// Only filter by is_active if not including inactive products
+	if !filters.IncludeInactive {
+		query = query.Eq("is_active", "true")
+	}
 
 	if filters.Category != "" {
 		query = query.Eq("category", filters.Category)

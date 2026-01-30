@@ -70,7 +70,7 @@ type Database interface {
 	) ([]TimeSlot, error)
 
 	// Product operations
-	GetProductsByVeterinarianID(ctx context.Context, vetID string) ([]Product, error)
+	GetProductsByVeterinarianID(ctx context.Context, vetID string, includeInactive bool) ([]Product, error)
 	GetProductByID(ctx context.Context, productID string) (*Product, error)
 	CreateProduct(ctx context.Context, product *Product) error
 	UpdateProduct(ctx context.Context, product *Product) error
@@ -239,9 +239,9 @@ type Product struct {
 	StockQuantity          int               `json:"stock_quantity"           db:"stock_quantity"`
 	SKU                    string            `json:"sku"                      db:"sku"`
 	Brand                  string            `json:"brand"                    db:"brand"`
-	Weight                 float64           `json:"weight"                   db:"weight"`
-	Dimensions             ProductDimensions `json:"dimensions"               db:"dimensions"`
-	IsPrescriptionRequired bool              `json:"is_prescription_required" db:"is_prescription_required"`
+	Weight                 float64            `json:"weight"                   db:"weight"`
+	Dimensions             *ProductDimensions `json:"dimensions,omitempty"     db:"dimensions"`
+	IsPrescriptionRequired bool               `json:"is_prescription_required" db:"is_prescription_required"`
 	IsActive               bool              `json:"is_active"                db:"is_active"`
 	Images                 []string          `json:"images"                   db:"images"`
 	CreatedAt              time.Time         `json:"created_at"               db:"created_at"`
@@ -250,22 +250,25 @@ type Product struct {
 
 // ProductDimensions represents product dimensions
 type ProductDimensions struct {
-	Length float64 `json:"length"`
-	Width  float64 `json:"width"`
-	Height float64 `json:"height"`
-	Unit   string  `json:"unit"`
+	Length           float64 `json:"length,omitempty"`
+	Width            float64 `json:"width,omitempty"`
+	Height           float64 `json:"height,omitempty"`
+	Unit             string  `json:"unit,omitempty"`
+	MeasurementValue float64 `json:"measurement_value,omitempty"`
+	MeasurementUnit  string  `json:"measurement_unit,omitempty"`
 }
 
 // ProductFilters represents filters for product listing
 type ProductFilters struct {
-	Category       string  `json:"category,omitempty"`
-	MinPrice       float64 `json:"min_price,omitempty"`
-	MaxPrice       float64 `json:"max_price,omitempty"`
-	Brand          string  `json:"brand,omitempty"`
-	VeterinarianID string  `json:"veterinarian_id,omitempty"`
-	Search         string  `json:"search,omitempty"`
-	Limit          int     `json:"limit,omitempty"`
-	Offset         int     `json:"offset,omitempty"`
+	Category        string  `json:"category,omitempty"`
+	MinPrice        float64 `json:"min_price,omitempty"`
+	MaxPrice        float64 `json:"max_price,omitempty"`
+	Brand           string  `json:"brand,omitempty"`
+	VeterinarianID  string  `json:"veterinarian_id,omitempty"`
+	Search          string  `json:"search,omitempty"`
+	Limit           int     `json:"limit,omitempty"`
+	Offset          int     `json:"offset,omitempty"`
+	IncludeInactive bool    `json:"include_inactive,omitempty"`
 }
 
 // Order represents a purchase order
