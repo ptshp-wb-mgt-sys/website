@@ -2,7 +2,7 @@ app = "pet-mgt-api"
 primary_region = "sin"
 
 [build]
-builder = "paketobuildpacks/builder-jammy-base"
+builder = "paketobuildpacks/builder-jammy-base:0.4.502"
 
 [env]
 PORT = "8080"
